@@ -8,6 +8,8 @@ It basically uses the APIs available at https://scc.suse.com/api/package_search/
 
 This searches for the latest version of a package, for one specific product.
 
-Usage: vercheck.py <product id> <package name>
-
+Usage: 
+```
+# vercheck.py <product id> <package name>
+```
 
