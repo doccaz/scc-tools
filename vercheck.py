@@ -2,8 +2,8 @@
 import sys
 import urllib3
 import json
-import collections
 import getopt
+from distutils.version import LooseVersion
 
 # static product list (taken from RMT and other sources)
 product_list = {
@@ -25,12 +25,10 @@ product_list = {
 	1612: { 'name': 'SUSE Linux Enterprise Server for SAP 15 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:suse:sles_sap:15' },
 	1766: { 'name': 'SUSE Linux Enterprise Server for SAP 15 SP1 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:suse:sles_sap:15:sp1' },
 	1941: { 'name': 'SUSE Linux Enterprise Server for SAP 15 SP2 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:suse:sles_sap:15:sp2' },
-	2117: { 'name': 'SUSE Linux Enterprise Server 12 LTSS x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:suse:sles:12:sp5' },
-	2056: { 'name': 'SUSE Linux Enterprise Server 15 LTSS x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:suse:sles:15:sp5' }
 }
 
 def mySort(e):
-	return e['id']
+	return LooseVersion(e['version'] + '-' + e['release'])
 
 
 def search_package(product_id, package_name, verbose):
@@ -51,8 +49,31 @@ def search_package(product_id, package_name, verbose):
 
 	if r.status == 200:
 		return_data = json.loads(r.data)
+	elif r.status == 422:
+		json_data = json.loads(r.data)
+		print('cannot be processed due to error: [' + json_data['error'] + ']')
+	elif verbose:
+		print('got error ' + str(r.status) + ' from the server!')
 
-	return return_data
+	refined_data = []
+
+	if return_data:
+		for item in return_data['data']:
+			# discard items that do not match exactly our query
+			#print(str(item))
+			if item['name'] != package_name:
+				continue
+			else:
+				#print('products for item: ' + str(item['products']))
+				for product in item['products']:
+					#print(str(product))
+					if verbose:
+						print('version ' + item['version'] + '-' + item['release'] + ' is available on repository [' + product['name'] + ' ' + product['edition'] + ' ' +  product['architecture'] + ']')
+					refined_data.append({'id':item['id'], 'version':item['version'], 'release': item['release']})
+	
+	refined_data.sort(reverse=True, key=mySort)
+
+	return refined_data
 
 def list_products():
 	print('Known products list')
@@ -69,8 +90,14 @@ def usage():
 	return
 
 def test():
+	package_name = 'glibc'
 	for k, v in product_list.items():
 		print('searching for package \"glibc\" in product id \"' + str(k) + '\" (' + v['name'] + ')')
+		refined_data = search_package(k, package_name, True)
+		try:
+			print('latest version for ' + package_name + ' is ' + refined_data[0]['version'] + '-' + refined_data[0]['release'])
+		except IndexError:
+			print('could not find any version for package ' + package_name)
 
 	return
 
@@ -78,7 +105,7 @@ def test():
 def main():
 
 	try:
-		opts,args = getopt.getopt(sys.argv[1:],  "hp:n:lsv", [ "help", "product=", "name=", "list-products", "short", "verbose" ])
+		opts,args = getopt.getopt(sys.argv[1:],  "hp:n:lsvt", [ "help", "product=", "name=", "list-products", "short", "verbose", "test" ])
 	except getopt.GetoptError as err:
 		print(err)
 		usage()
@@ -103,6 +130,9 @@ def main():
 			exit(0)
 		elif o in ("-v", "--verbose"):
 			verbose = True
+		elif o in ("-t", "--test"):
+			test()
+			exit(0)
 		else:
 			assert False, "invalid option"
 
@@ -114,29 +144,11 @@ def main():
 
 	if product_id not in product_list:
 		print ('Product ID ' + str(product_id) + ' is unknown.')
-		exit(1)
 	else:
 		if verbose is True:
 			print ('Using product ID ' + str(product_id) +  ' ('  + product_list[product_id]['name'] + ')')
-
-	return_data = search_package(product_id, package_name, verbose)
-
-	refined_data = []
-
-	if return_data:
-		for item in return_data['data']:
-			# discard items that do not match exactly our query
-			if item['name'] != package_name:
-				continue
-			else:
-				#print('products for item: ' + str(item['products']))
-				for product in item['products']:
-					if product['id'] == product_id:
-						if short_response is False:
-							print('version ' + item['version'] + '-' + item['release'] + ' is available')
-						refined_data.append({'id':item['id'], 'version':item['version'], 'release': item['release']})
 	
-	refined_data.sort(reverse=True, key=mySort)
+	refined_data = search_package(product_id, package_name, verbose)
 
 	try:
 		if short_response:
