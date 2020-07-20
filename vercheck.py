@@ -65,7 +65,7 @@ def list_products():
 	return
 
 def usage():
-	print('Usage: ' + sys.argv[0] + ' [-l|--list-products] -p|--product=product id -n|--name <package name>')
+	print('Usage: ' + sys.argv[0] + ' [-l|--list-products] -p|--product=product id -n|--name <package name> [-s|--short] [-v|--verbose]')
 	return
 
 def test():
