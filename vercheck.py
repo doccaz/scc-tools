@@ -58,7 +58,7 @@ def find_cpe(directory_name):
 def read_rpmlist(directory_name):
 	rpmlist = []
 	regex_start = r"(^NAME.*VERSION)\n"
-	regex_package = r"(\S*).*\s([0-9].*)"
+	regex_package = r"(\S*)\s{2,}\S.*\s{2,}(.*)"
 	regex_end = r"(^$)\n"
 	try:
 		f = open(directory_name + '/rpm.txt', 'r')
@@ -133,12 +133,16 @@ def search_package(product_id, package_name, verbose):
 					if verbose:
 						print('version ' + item['version'] + '-' + item['release'] + ' is available on repository [' + product['name'] + ' ' + product['edition'] + ' ' +  product['architecture'] + ']')
 					refined_data.append({'id':item['id'], 'version':item['version'], 'release': item['release']})
+					#print('added result: ' + item['name'] + ' ' + item['version'] + '-' + item['release'])
 
 	try:	
 		refined_data.sort(reverse=True, key=mySort)
 	except TypeError as e:
-		print('wrong version format: ' + str(e))
+		# sometimes the version is so wildly mixed with letters that the sorter gets confused
+		# but it's okay to ignore this
+		print('warning: sorting error due to strange version (may be ignored): ' + str(e))
 
+	#print('refined data size: ' + str(len(refined_data)))
 	return refined_data
 
 def list_products():
@@ -152,7 +156,19 @@ def list_products():
 	return
 
 def usage():
-	print('Usage: ' + sys.argv[0] + ' [-l|--list-products] -p|--product=product id -n|--name <package name> [-s|--short] [-v|--verbose]')
+	print('Usage: ' + sys.argv[0] + ' [-l|--list-products] -p|--product product id -n|--name <package name> [-s|--short] [-v|--verbose] [-d|--supportconfig]')
+	return
+
+def show_help():
+	usage()	
+	print('\n')
+	print('-l|--list-products\t\tLists all supported products. Use this to get a valid product ID for further queries.\n')
+	print('-p|--product <product id>\tSpecifies a valid product ID for queries. Mandatory for searches.\n')
+	print('-n|--name <package name>\tSpecifies a package name to search. Exact matches only for now. Mandatory for searches.\n')
+	print('-s|--short\t\t\tOnly outputs the latest version, useful for scripts\n')
+	print('-v|--verbose\t\t\tOutputs extra information about the search and results\n')
+	print('-d|--supportconfig\t\tAnalyzes a supportconfig directory and generates CSV reports for up-to-date, not found and different packages.')
+	print('\n')
 	return
 
 def test():
@@ -173,9 +189,11 @@ def check_supportconfig(supportconfigdir):
 	notfound = []
 	different = []
 
+	print('Analyzing supportconfig directory: ' + supportconfigdir)
+
 	match_os = find_cpe(supportconfigdir)
 	if match_os != -1:
-		print('product name = ' + product_list[match_os]['name'])
+		print('product name = ' + product_list[match_os]['name'] + ' (' + str(match_os) + ')')
 	else:
 		print('error while determining CPE')
 		return ([],[],[])
@@ -187,20 +205,62 @@ def check_supportconfig(supportconfigdir):
 	count=1
 	for p in rpmlist:
 		refined_data = search_package(match_os, p[0], False)
-		try:
-			latest = refined_data[0]['version'] + '-' + refined_data[1]['release']
+		#print('refined data = ' + str(refined_data))
+
+		if len(refined_data) == 0:
+			print('[' + str(count) + '/' + str(total) + '] ' + p[0] + ': not found')
+			notfound.append([p[0], p[1]])
+		else:
+			latest = refined_data[0]['version'] + '-' + refined_data[0]['release']
+			#print('latest = ' + latest)
+		
 			if latest != p[1]:
-				print('[' + str(count) + '/' + str(total) + '] ' + p[0] + ': latest version is ' + latest + ' (current: ' + p[1] + ')')
+				print('[' + str(count) + '/' + str(total) + '] ' + p[0] + ': current version is ' + p[1] + ' (latest: ' + latest + ')')
 				different.append([p[0], p[1], latest]) 
 			else:
-				print('[' + str(count) + '/' + str(total) + '] ' + p[0] + ': up-to-date')
+				print('[' + str(count) + '/' + str(total) + '] ' + p[0] + ': up-to-date (' + latest + ')')
 				uptodate.append([p[0], p[1]]) 
 
-		except IndexError:
-			print('[' + str(count) + '/' + str(total) + '] ' + p[0] + ': not found')
-			notfound.append(p[0])
 		count+=1
 	return (uptodate, notfound, different)
+
+def write_reports(uptodate, notfound, different):
+
+
+	print('up-to-date:' + str(len(uptodate)) + ' packages')
+
+	try:	
+		with open('uptodate.csv', 'w') as f:
+			for p, c in uptodate:
+				f.write(p + ',' + c + '\n')
+			f.close()
+	except Exception as e:
+		print('Error writing file: ' + str(e))
+		return
+	
+
+	print('not found:' + str(len(notfound)) + ' packages')
+	try:	
+		with open('notfound.csv', 'w') as f:
+			for p, c in notfound:
+				f.write(p + ',' + c + '\n')
+			f.close()
+	except Exception as e:
+		print('Error writing file: ' + str(e))
+		return
+
+
+	print('different:' + str(len(different)) + ' packages')
+	try:	
+		with open('different.csv', 'w') as f:
+			for p, c, l  in different:
+				f.write(p + ',' + c + ',' + l + '\n')
+			f.close()
+	except Exception as e:
+		print('Error writing file: ' + str(e))
+		return
+
+	return
 
 #### main program
 def main():
@@ -218,7 +278,7 @@ def main():
 	verbose = False
 	for o, a in opts:
 		if o in ("-h", "--help"):
-			usage()
+			show_help()
 			exit(1)
 		elif o in ("-s", "--short"):
 			short_response = True
@@ -232,7 +292,7 @@ def main():
 		elif o in ("-d", "--supportconfig"):
 			supportconfigdir = a
 			uptodate, notfound, different = check_supportconfig(supportconfigdir)
-
+			write_reports(uptodate, notfound, different)
 			exit(0)
 
 		elif o in ("-v", "--verbose"):
