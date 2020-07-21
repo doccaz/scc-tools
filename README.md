@@ -4,17 +4,21 @@ A set of simple tools to interact with SUSE Customer Center (SCC).
 
 It basically uses the APIs available at https://scc.suse.com/api/package_search/v4/documentation
 
+
 ## vercheck
 
 This tool searches for the latest version of a package, for one specific product.
 
 Usage: 
 ```
-# Usage: vercheck.py [-l|--list-products] -p|--product=product id -n|--name <package name> [-s|--short] [-v|--verbose]
+# Usage: vercheck.py [-l|--list-products] -p|--product=product id -n|--name <package name> [-s|--short] [-v|--verbose] [-d|--supportconfig]
 ```
 
-### Examples
+It uses compression, and a single urllib3 connection, to minimize the impact on the public server as much as possible.
+I also tried to use all resources that do NOT require authentication, inspired by the public package search at https://scc.suse.com/packages .
 
+
+### Examples
 
 * Listing supported products list (-l or --list):
 
