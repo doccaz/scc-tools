@@ -11,7 +11,7 @@ This tool searches for the latest version of a package, for one specific product
 
 Usage: 
 ```
-# Usage: vercheck.py [-l|--list-products] -p|--product=product id -n|--name <package name> [-s|--short] [-v|--verbose] [-d|--supportconfig]
+# Usage: vercheck.py [-l|--list-products] -p|--product=product id -n|--name <package name> [-s|--short] [-v|--verbose]  [-1|--show-unknown] [-2|--show-differences] [-3|--show-uptodate] [-d|--supportconfig]
 ```
 
 It uses compression, and a single urllib3 connection, to minimize the impact on the public server as much as possible.

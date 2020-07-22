@@ -85,9 +85,7 @@ def find_cpe(directory_name, architecture):
 		f = open(directory_name + '/basic-environment.txt', 'r')
 		text = f.read()
 		f.close()
-
 		matches = re.search(regex, text)
-
 		for p in product_list:
 			if matches.group(1) == product_list[p]['identifier'] and architecture == product_list[p]['arch']:
 				return p
@@ -102,7 +100,6 @@ def find_arch(directory_name):
 		f = open(directory_name + '/hardware.txt', 'r')
 		text = f.read()
 		f.close()
-
 		matches = re.search(regex, text, re.MULTILINE)
 		if matches != None:
 			return matches.group(1)
@@ -149,10 +146,8 @@ def read_rpmlist(directory_name):
 def mySort(e):
 	return LooseVersion(e['version'] + '-' + e['release'])
 
-
 def search_package(product_id, package_name, verbose):
-
-	if verbose is True:
+	if verbose:
 		print('looking for ' + package_name + ' on product id ' + str(product_id))
 
 	urllib3.disable_warnings()
@@ -195,7 +190,8 @@ def search_package(product_id, package_name, verbose):
 	except TypeError as e:
 		# sometimes the version is so wildly mixed with letters that the sorter gets confused
 		# but it's okay to ignore this
-		print('warning: sorting error due to strange version (may be ignored): ' + str(e))
+		# print('warning: sorting error due to strange version (may be ignored): ' + str(e))
+		pass
 
 	#print('refined data size: ' + str(len(refined_data)))
 	return refined_data
@@ -211,7 +207,7 @@ def list_products():
 	return
 
 def usage():
-	print('Usage: ' + sys.argv[0] + ' [-l|--list-products] -p|--product product id -n|--name <package name> [-s|--short] [-v|--verbose] [-d|--supportconfig]')
+	print('Usage: ' + sys.argv[0] + ' [-l|--list-products] -p|--product product id -n|--name <package name> [-s|--short] [-v|--verbose] [-1|--show-unknown] [-2|--show-differences] [-3|--show-uptodate] [-d|--supportconfig]')
 	return
 
 def show_help():
@@ -295,10 +291,7 @@ def check_supportconfig(supportconfigdir, show_unknown, show_diff, show_uptodate
 	return (uptodate, notfound, different)
 
 def write_reports(uptodate, notfound, different):
-
-
 	print('up-to-date:' + str(len(uptodate)) + ' packages')
-
 	try:	
 		with open('uptodate.csv', 'w') as f:
 			for p, c in uptodate:
@@ -308,7 +301,6 @@ def write_reports(uptodate, notfound, different):
 		print('Error writing file: ' + str(e))
 		return
 	
-
 	print('not found:' + str(len(notfound)) + ' packages')
 	try:	
 		with open('notfound.csv', 'w') as f:
@@ -318,7 +310,6 @@ def write_reports(uptodate, notfound, different):
 	except Exception as e:
 		print('Error writing file: ' + str(e))
 		return
-
 
 	print('different:' + str(len(different)) + ' packages')
 	try:	
@@ -334,7 +325,6 @@ def write_reports(uptodate, notfound, different):
 
 #### main program
 def main():
-
 	try:
 		opts,args = getopt.getopt(sys.argv[1:],  "hp:n:lsvt123d:", [ "help", "product=", "name=", "list-products", "short", "verbose", "test", "show-unknown", "show-differences", "show-uptodate", "supportconfig=" ])
 	except getopt.GetoptError as err:
@@ -382,7 +372,6 @@ def main():
 		else:
 			assert False, "invalid option"
 
-
 	if product_id == -1 or package_name is '':
 		print('Please specify a product ID and package name.')
 		usage()
@@ -391,7 +380,7 @@ def main():
 	if product_id not in product_list:
 		print ('Product ID ' + str(product_id) + ' is unknown.')
 	else:
-		if verbose is True:
+		if verbose:
 			print ('Using product ID ' + str(product_id) +  ' ('  + product_list[product_id]['name'] + ')')
 	
 	refined_data = search_package(product_id, package_name, verbose)
@@ -412,4 +401,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
