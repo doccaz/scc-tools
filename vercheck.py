@@ -222,6 +222,9 @@ def show_help():
 	print('-n|--name <package name>\tSpecifies a package name to search. Exact matches only for now. Mandatory for searches.\n')
 	print('-s|--short\t\t\tOnly outputs the latest version, useful for scripts\n')
 	print('-v|--verbose\t\t\tOutputs extra information about the search and results\n')
+	print('-1|--show-unknown: shows unknown packages as they are found.\n')
+	print('-2|--show-differences): shows packages that have updates available as they are found.\n')
+	print('-3|--show-uptodate): shows packages that are on par with the updated versions as they are found.\n')
 	print('-d|--supportconfig\t\tAnalyzes a supportconfig directory and generates CSV reports for up-to-date, not found and different packages.')
 	print('\n')
 	return
@@ -238,7 +241,7 @@ def test():
 
 	return
 
-def check_supportconfig(supportconfigdir):
+def check_supportconfig(supportconfigdir, show_unknown, show_diff, show_uptodate):
 
 	uptodate = []
 	notfound = []
@@ -262,22 +265,33 @@ def check_supportconfig(supportconfigdir):
 	for p in rpmlist:
 		refined_data = search_package(match_os, p[0], False)
 		#print('refined data = ' + str(refined_data))
+		progress = '[' + str(count) + '/' + str(total) + ']'
+		sys.stdout.write('processing ' + progress)
+		blank = ('\b' * (len(progress) + 11))
 
 		if len(refined_data) == 0:
-			print('[' + str(count) + '/' + str(total) + '] ' + p[0] + ': not found')
+			if show_unknown:
+				sys.stdout.write('\n' + p[0] + ': not found\n')		
 			notfound.append([p[0], p[1]])
 		else:
 			latest = refined_data[0]['version'] + '-' + refined_data[0]['release']
 			#print('latest = ' + latest)
 		
 			if latest != p[1]:
-				print('[' + str(count) + '/' + str(total) + '] ' + p[0] + ': current version is ' + p[1] + ' (latest: ' + latest + ')')
+				if show_diff:
+					sys.stdout.write('\n' + p[0] + ': current version is ' + p[1] + ' (latest: ' + latest + ')\n')
 				different.append([p[0], p[1], latest]) 
 			else:
-				print('[' + str(count) + '/' + str(total) + '] ' + p[0] + ': up-to-date (' + latest + ')')
+				if show_uptodate:
+					sys.stdout.write('\n' + p[0] + ': up-to-date (' + latest + ')\n')
 				uptodate.append([p[0], p[1]]) 
 
 		count+=1
+		sys.stdout.write(blank)
+		sys.stdout.flush()
+	sys.stdout.write('\nDone.\n')
+	sys.stdout.flush()
+	
 	return (uptodate, notfound, different)
 
 def write_reports(uptodate, notfound, different):
@@ -322,7 +336,7 @@ def write_reports(uptodate, notfound, different):
 def main():
 
 	try:
-		opts,args = getopt.getopt(sys.argv[1:],  "hp:n:lsvtd:", [ "help", "product=", "name=", "list-products", "short", "verbose", "test", "supportconfig=" ])
+		opts,args = getopt.getopt(sys.argv[1:],  "hp:n:lsvt123d:", [ "help", "product=", "name=", "list-products", "short", "verbose", "test", "show-unknown", "show-differences", "show-uptodate", "supportconfig=" ])
 	except getopt.GetoptError as err:
 		print(err)
 		usage()
@@ -332,6 +346,10 @@ def main():
 	package_name = ''
 	short_response = False
 	verbose = False
+	show_unknown = False
+	show_diff = False
+	show_uptodate = False
+
 	for o, a in opts:
 		if o in ("-h", "--help"):
 			show_help()
@@ -345,16 +363,21 @@ def main():
 		elif o in ("-l", "--list-products"):
 			list_products()
 			exit(0)
-		elif o in ("-d", "--supportconfig"):
-			supportconfigdir = a
-			uptodate, notfound, different = check_supportconfig(supportconfigdir)
-			write_reports(uptodate, notfound, different)
-			exit(0)
-
+		elif o in ("-1", "--show-unknown"):
+			show_unknown = True
+		elif o in ("-2", "--show-differences"):
+			show_diff = True
+		elif o in ("-3", "--show-uptodate"):
+			show_uptodate = True
 		elif o in ("-v", "--verbose"):
 			verbose = True
 		elif o in ("-t", "--test"):
 			test()
+			exit(0)
+		elif o in ("-d", "--supportconfig"):
+			supportconfigdir = a
+			uptodate, notfound, different = check_supportconfig(supportconfigdir,  show_unknown, show_diff, show_uptodate)
+			write_reports(uptodate, notfound, different)
 			exit(0)
 		else:
 			assert False, "invalid option"
