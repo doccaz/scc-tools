@@ -400,7 +400,7 @@ def main():
 		elif o in ("-d", "--supportconfig"):
 			supportconfigdir = a
 			uptodate, notfound, different = check_supportconfig(supportconfigdir)
-			write_reports(uptodate, notfound, different, show_unknown, show_diff, show_uptodate)
+			write_reports()
 			exit(0)
 		else:
 			assert False, "invalid option"
