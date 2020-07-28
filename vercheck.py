@@ -1,9 +1,10 @@
 #!/usr/bin/python3
 import re
-import sys
+import sys, os
 import urllib3
 import json
 import getopt
+import signal
 from distutils.version import LooseVersion
 
 # static product list (taken from RMT and other sources)
@@ -78,6 +79,25 @@ product_list = {
 # single instance for urllib3 pool
 http = urllib3.PoolManager()
 
+# result lists
+uptodate = []
+notfound = []
+different = []
+
+# report flags
+show_unknown = False
+show_diff = False
+show_uptodate = False
+
+# base name for the reports
+sc_name = ''
+
+def cleanup(signalNumber, frame):
+	print('\nokay, okay, I\'m leaving!')
+	write_reports()
+	sys.exit(0)
+	return
+
 def find_cpe(directory_name, architecture):
 	regex = r"CPE_NAME=\"(.*)\""
 	
@@ -92,7 +112,7 @@ def find_cpe(directory_name, architecture):
 	except Exception as e:
 		print ('error: ' + str(e))
 	return -1
-
+	
 def find_arch(directory_name):
 	regex = r"^Architecture:\s+(\w+)"
 	
@@ -237,14 +257,12 @@ def test():
 
 	return
 
-def check_supportconfig(supportconfigdir, show_unknown, show_diff, show_uptodate):
+def check_supportconfig(supportconfigdir):
 
-	uptodate = []
-	notfound = []
-	different = []
+	global sc_name
 
 	print('Analyzing supportconfig directory: ' + supportconfigdir)
-
+	sc_name = supportconfigdir.split(os.sep)[-1]
 	match_arch = find_arch(supportconfigdir)
 	match_os = find_cpe(supportconfigdir, match_arch)
 	if match_os != -1 and match_arch != "unknown":
@@ -266,20 +284,14 @@ def check_supportconfig(supportconfigdir, show_unknown, show_diff, show_uptodate
 		blank = ('\b' * (len(progress) + 11))
 
 		if len(refined_data) == 0:
-			if show_unknown:
-				sys.stdout.write('\n' + p[0] + ': not found\n')		
 			notfound.append([p[0], p[1]])
 		else:
 			latest = refined_data[0]['version'] + '-' + refined_data[0]['release']
 			#print('latest = ' + latest)
 		
 			if latest != p[1]:
-				if show_diff:
-					sys.stdout.write('\n' + p[0] + ': current version is ' + p[1] + ' (latest: ' + latest + ')\n')
 				different.append([p[0], p[1], latest]) 
 			else:
-				if show_uptodate:
-					sys.stdout.write('\n' + p[0] + ': up-to-date (' + latest + ')\n')
 				uptodate.append([p[0], p[1]]) 
 
 		count+=1
@@ -290,10 +302,10 @@ def check_supportconfig(supportconfigdir, show_unknown, show_diff, show_uptodate
 	
 	return (uptodate, notfound, different)
 
-def write_reports(uptodate, notfound, different):
-	print('up-to-date:' + str(len(uptodate)) + ' packages')
+def write_reports():
+	print ('writing CSV reports to ' + os.getcwd() + '\n')
 	try:	
-		with open('uptodate.csv', 'w') as f:
+		with open('uptodate-' + sc_name + '.csv', 'w') as f:
 			for p, c in uptodate:
 				f.write(p + ',' + c + '\n')
 			f.close()
@@ -301,9 +313,8 @@ def write_reports(uptodate, notfound, different):
 		print('Error writing file: ' + str(e))
 		return
 	
-	print('not found:' + str(len(notfound)) + ' packages')
 	try:	
-		with open('notfound.csv', 'w') as f:
+		with open('notfound-' + sc_name + '.csv', 'w') as f:
 			for p, c in notfound:
 				f.write(p + ',' + c + '\n')
 			f.close()
@@ -311,9 +322,8 @@ def write_reports(uptodate, notfound, different):
 		print('Error writing file: ' + str(e))
 		return
 
-	print('different:' + str(len(different)) + ' packages')
 	try:	
-		with open('different.csv', 'w') as f:
+		with open('different-' + sc_name + '.csv', 'w') as f:
 			for p, c, l  in different:
 				f.write(p + ',' + c + ',' + l + '\n')
 			f.close()
@@ -321,6 +331,30 @@ def write_reports(uptodate, notfound, different):
 		print('Error writing file: ' + str(e))
 		return
 
+	field_size = 30
+	if show_uptodate:
+		print('\n\t\t---  Up-to-date packages ---\n')
+		print(str.ljust('Name', field_size) + '\t' + str.ljust('Current Version', field_size))
+		print('=' * 80)
+		for p, c in uptodate:
+				print(str.ljust(p, field_size) + '\t' + c)
+		print('\nTotal: ' + str(len(uptodate)) + ' packages')
+
+	if show_diff:
+		print('\n\t\t---  Different packages ---\n')
+		print(str.ljust('Name', field_size) + '\t' + str.ljust('Current Version', field_size) + '\t' + str.ljust('Latest Version', field_size))
+		print('=' * 80)
+		for p, c, l  in different:
+				print(str.ljust(p, field_size) + '\t' + str.ljust(c, field_size) + '\t' + str.ljust(l, field_size))
+		print('\nTotal: ' + str(len(different)) + ' packages')
+
+	if show_unknown:
+		print('\n\t\t--- Unknown packages ---\n')
+		print(str.ljust('Name', field_size) + '\t' + str.ljust('Current Version', field_size))
+		print('=' * 80)
+		for p, c  in notfound:
+				print(str.ljust(p, 30) + '\t' + c)	
+		print('\nTotal: ' + str(len(notfound)) + ' packages')
 	return
 
 #### main program
@@ -336,9 +370,8 @@ def main():
 	package_name = ''
 	short_response = False
 	verbose = False
-	show_unknown = False
-	show_diff = False
-	show_uptodate = False
+	global show_unknown, show_diff, show_uptodate
+	global uptodate, different, notfound
 
 	for o, a in opts:
 		if o in ("-h", "--help"):
@@ -366,8 +399,8 @@ def main():
 			exit(0)
 		elif o in ("-d", "--supportconfig"):
 			supportconfigdir = a
-			uptodate, notfound, different = check_supportconfig(supportconfigdir,  show_unknown, show_diff, show_uptodate)
-			write_reports(uptodate, notfound, different)
+			uptodate, notfound, different = check_supportconfig(supportconfigdir)
+			write_reports(uptodate, notfound, different, show_unknown, show_diff, show_uptodate)
 			exit(0)
 		else:
 			assert False, "invalid option"
@@ -400,4 +433,5 @@ def main():
 	return
 
 if __name__ == "__main__":
-    main()
+	signal.signal(signal.SIGINT, cleanup)
+	main()
