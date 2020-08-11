@@ -6,6 +6,7 @@ import json
 import getopt
 import signal
 from distutils.version import LooseVersion
+from concurrent.futures import ThreadPoolExecutor
 
 # static product list (taken from RMT and other sources)
 product_list = {
@@ -76,8 +77,14 @@ product_list = {
 	1941: { 'name': 'SUSE Linux Enterprise Server for SAP 15 SP2 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:suse:sles_sap:15:sp2' },
 }
 	
+# number of concurrent threads
+max_threads = 5
+
 # single instance for urllib3 pool
-http = urllib3.PoolManager()
+http = urllib3.PoolManager(maxsize=max_threads)
+
+# thread pool for supportconfig checks
+thread_pool = ThreadPoolExecutor(max_threads)
 
 # result lists
 uptodate = []
@@ -277,7 +284,7 @@ def check_supportconfig(supportconfigdir):
 	
 	count=1
 	for p in rpmlist:
-		refined_data = search_package(match_os, p[0], False)
+		refined_data = thread_pool.submit(search_package(match_os, p[0], False))
 		#print('refined data = ' + str(refined_data))
 		progress = '[' + str(count) + '/' + str(total) + ']'
 		sys.stdout.write('processing ' + progress)
