@@ -7,8 +7,8 @@ import json
 import getopt
 import signal
 from distutils.version import LooseVersion
-from concurrent.futures import ThreadPoolExecutor
 
+### main class that deals with command lines, reports and everything else
 class SCCVersion():
 
 	# static product list (taken from RMT and other sources)
@@ -274,7 +274,7 @@ class SCCVersion():
 			#print('refined data = ' + str(refined_data))
 			try:
 				if self.verbose:
-					print('[thread ' +  str(thread_number) + ' ] latest version for ' + refined_data['query'] + ' on product ID ' + str(refined_data['product_id']) +  ' is ' + refined_data['results'][0]['version'] + '-' + refined_data['results'][0]['release'])
+					print('latest version for ' + refined_data['query'] + ' on product ID ' + str(refined_data['product_id']) +  ' is ' + refined_data['results'][0]['version'] + '-' + refined_data['results'][0]['release'])
 				if len(refined_data['results']) == 0:
 					self.notfound.append([refined_data['query'], refined_data['supplied_version']])
 				else:
@@ -286,7 +286,8 @@ class SCCVersion():
 					else:
 						self.uptodate.append([refined_data['query'], refined_data['supplied_version']]) 
 			except IndexError:
-				print('[thread ' + str(thread_number) + '] could not find any version for package ' + refined_data['query'])
+				#print('[thread ' + str(thread_number) + '] could not find any version for package ' + refined_data['query'])
+				pass
 
 		sys.stdout.write('\nDone.\n')
 		sys.stdout.flush()
@@ -349,8 +350,7 @@ class SCCVersion():
 		return
 
 
-
-
+### separate class instantiated by each thread, does a search and posts results
 class PackageSearchEngine(Thread):
 
 	# number of concurrent threads
