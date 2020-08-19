@@ -238,8 +238,12 @@ class SCCVersion():
 
 		global sc_name
 
-		print('Analyzing supportconfig directory: ' + supportconfigdir)
 		sc_name = supportconfigdir.split(os.sep)[-1]
+		if sc_name == '.':
+			sc_name = os.getcwd().split(os.sep)[-1]
+
+		print('Analyzing supportconfig directory: ' + supportconfigdir)
+		
 		match_arch = self.find_arch(supportconfigdir)
 		match_os = self.find_cpe(supportconfigdir, match_arch)
 		if match_os != -1 and match_arch != "unknown":
