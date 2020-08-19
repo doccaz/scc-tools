@@ -14,7 +14,7 @@ Usage:
 # Usage: vercheck.py [-l|--list-products] -p|--product=product id -n|--name <package name> [-s|--short] [-v|--verbose]  [-1|--show-unknown] [-2|--show-differences] [-3|--show-uptodate] [-d|--supportconfig]
 ```
 
-It uses compression, and a single urllib3 connection, to minimize the impact on the public server as much as possible.
+It uses compression, and a single urllib3 pool instance, to minimize the impact on the public server as much as possible. In order to speed things up, I open multiple threads and consume the RPM list slowly.
 I also tried to use all resources that do NOT require authentication, inspired by the public package search at https://scc.suse.com/packages .
 
 
@@ -117,5 +117,5 @@ This option analyzes a previously extracted supportconfig report. It will find t
 searches on ALL packages in order to find which ones are up-to-date, have older versions, or are not found in the official
 repositories.
 
-It generates 3 CSV reports: uptodate.csv, different.csv and notfound.csv, respectively.
+It generates 3 CSV reports: vercheck-uptodate-<directory name>.csv, vercheck-different-<directory name>.csv and vercheck-notfound-<directory name>.csv, respectively.
 
