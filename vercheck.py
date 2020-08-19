@@ -271,7 +271,7 @@ class SCCVersion():
 			sys.stdout.flush()
 			time.sleep(self.wait_time)
 
-		print('gathering results...')
+		print('gathering results...    ')
 		for thread_number in range(count):
 			threads[thread_number].join()
 			refined_data = threads[thread_number].get_results()
@@ -301,7 +301,7 @@ class SCCVersion():
 	def write_reports(self):
 		print ('writing CSV reports to ' + os.getcwd() + '\n')
 		try:	
-			with open('uptodate-' + sc_name + '.csv', 'w') as f:
+			with open('vercheck-uptodate-' + sc_name + '.csv', 'w') as f:
 				for p, c in self.uptodate:
 					f.write(p + ',' + c + '\n')
 				f.close()
@@ -310,7 +310,7 @@ class SCCVersion():
 			return
 		
 		try:	
-			with open('notfound-' + sc_name + '.csv', 'w') as f:
+			with open('vercheck-notfound-' + sc_name + '.csv', 'w') as f:
 				for p, c in self.notfound:
 					f.write(p + ',' + c + '\n')
 				f.close()
@@ -319,7 +319,7 @@ class SCCVersion():
 			return
 
 		try:	
-			with open('different-' + sc_name + '.csv', 'w') as f:
+			with open('vercheck-different-' + sc_name + '.csv', 'w') as f:
 				for p, c, l  in self.different:
 					f.write(p + ',' + c + ',' + l + '\n')
 				f.close()
