@@ -103,6 +103,8 @@ class SCCVersion():
 	# time to wait before starting each chunk of threads
 	wait_time = 1
 
+	short_response = False
+
 	def set_verbose(self, verbose):
 		self.verbose = verbose
 
@@ -233,6 +235,33 @@ class SCCVersion():
 				print('could not find any version for package ' + package_name)
 
 		return
+
+	def search_package(self, product_id, package_name):
+
+		threads = []
+
+		print('searching for package \"' + package_name + '\" in product id \"' + str(product_id) + '\" (' + self.product_list[product_id]['name'] + ')')
+		threads.insert(0, PackageSearchEngine(0, product_id, package_name, '0'))
+		threads[0].start()
+
+		# fetch results for the only thread
+		threads[0].join()
+		refined_data = threads[0].get_results()
+		try:
+			if self.short_response:
+				print(refined_data['results'][0]['version'] + '-' + refined_data['results'][0]['release'])
+			else:
+				print('latest version for ' + refined_data['query'] + ' on product ID ' + str(refined_data['product_id']) +  ' is ' + refined_data['results'][0]['version'] + '-' + refined_data['results'][0]['release'])
+			if self.verbose:
+				for item in refined_data['results']:
+					print('version ' + item['version'] + '-' + item['release'] + ' is available on repository [' + item['repository'] + ']')
+		except IndexError:
+			if self.short_response:
+				print('none')
+			else:
+				print('could not find any version for package ' + package_name)
+		return
+
 
 	def check_supportconfig(self, supportconfigdir):
 
@@ -484,25 +513,14 @@ def main():
 		sv.usage()
 		exit(2)
 
-	if product_id not in product_list:
+	if product_id not in sv.product_list:
 		print ('Product ID ' + str(product_id) + ' is unknown.')
 	else:
 		if sv.verbose:
-			print ('Using product ID ' + str(product_id) +  ' ('  + product_list[product_id]['name'] + ')')
+			print ('Using product ID ' + str(product_id) +  ' ('  + sv.product_list[product_id]['name'] + ')')
 	
-	refined_data = search_package(product_id, package_name, verbose)
+	sv.search_package(product_id, package_name)
 
-	try:
-		if sv.short_response:
-			print(refined_data[0]['version'] + '-' + refined_data[0]['release'])
-		else:
-			print('latest version for ' + package_name + ' is ' + refined_data[0]['version'] + '-' + refined_data[0]['release'])
-	except IndexError:
-		if short_response:
-			print('none')
-		else:
-			print('could not find any version for package ' + package_name)
-		exit(1)
 
 	return
 
