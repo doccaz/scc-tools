@@ -117,5 +117,5 @@ This option analyzes a previously extracted supportconfig report. It will find t
 searches on ALL packages in order to find which ones are up-to-date, have older versions, or are not found in the official
 repositories.
 
-It generates 3 CSV reports: vercheck-uptodate-<directory name>.csv, vercheck-different-<directory name>.csv and vercheck-notfound-<directory name>.csv, respectively.
+It generates 3 CSV reports: vercheck-uptodate[directory name].csv, vercheck-different[directory name].csv and vercheck-notfound[directory name].csv, respectively.
 
