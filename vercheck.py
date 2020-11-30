@@ -98,7 +98,7 @@ class SCCVersion():
 	sc_name = ''
 
 	# maximum number of running threads
-	max_threads = 10
+	max_threads = 15
 
 	# time to wait before starting each chunk of threads
 	wait_time = 1
@@ -387,10 +387,19 @@ class SCCVersion():
 class PackageSearchEngine(Thread):
 
 	# number of concurrent threads
-	max_threads = 5
+	max_threads = 20
 
 	# single instance for urllib3 pool
 	http = urllib3.PoolManager(maxsize=max_threads)
+
+	# maximum retries for each thread
+	max_tries = 5
+
+	# server replies which are temporary errors (and can be retried)
+	retry_states = [ 502, 504 ]
+
+	# server replies which are permanent errors (and cannot be retried)
+	error_states = [ 400, 403, 404, 422, 500 ]
 
 	results = {}
 
@@ -410,22 +419,36 @@ class PackageSearchEngine(Thread):
 
 	def run(self):
 		#print('[Thread ' + str(self.instance_nr) + '] looking for ' + self.package_name + ' on product id ' + str(self.product_id))
+		tries = 0
+		valid_response = False
+		return_data = []
+		while not valid_response and tries < self.max_tries:
+			try:
+				r = self.http.request('GET', 'https://scc.suse.com/api/package_search/packages?product_id=' + str(self.product_id) + '&query=' + self.package_name, headers={'Accept-Encoding': 'gzip, deflate'})
+			except Exception as e:
+				print('Error while connecting: ' + str(e))
+				exit(1)
 
-		try:
-			r = self.http.request('GET', 'https://scc.suse.com/api/package_search/packages?product_id=' + str(self.product_id) + '&query=' + self.package_name, headers={'Accept-Encoding': 'gzip, deflate'})
-		except Exception as e:
-			print('Error while connecting: ' + str(e))
-			exit(1)
+			return_data = {}
 
-		return_data = {}
-
-		if r.status == 200:
-			return_data = json.loads(r.data)
-		elif r.status == 422:
-			json_data = json.loads(r.data)
-			print('cannot be processed due to error: [' + json_data['error'] + ']')
-		else:
-			print('got error ' + str(r.status) + ' from the server!')
+			if r.status == 200:
+				if tries > 0:
+					print('thread %d got a good reply after %d tries' % (self.instance_nr, tries))
+				return_data = json.loads(r.data)
+				valid_response = True
+			elif r.status in self.error_states:
+				if r.data:
+					json_data = json.loads(r.data)
+					print('cannot be processed due to error: [' + json_data['error'] + ']')
+				print('thread %d got a fatal error (%d). Results will be incomplete!\nPlease contact the service administrators or try again later.' % (self.instance_nr, r.status))
+				break
+			elif r.status in self.retry_states:
+				print('thread %d got non-fatal reply (%d) from server, trying again in 2 seconds ' % (self.instance_nr, r.status))
+				time.sleep(2)
+				tries = tries + 1
+				continue
+			else:
+				print('got unknown error %d from the server!' % r.status)
 
 		refined_data = []
 
