@@ -103,6 +103,9 @@ class SCCVersion():
 	# time to wait before starting each chunk of threads
 	wait_time = 1
 
+	# override architecture
+	arch = None
+
 	short_response = False
 
 	def set_verbose(self, verbose):
@@ -140,7 +143,18 @@ class SCCVersion():
 			if matches != None:
 				return matches.group(1)
 		except Exception as e:
-			print ('error: ' + str(e))
+			print ('error opening hardware.txt, trying basic-environment.txt...')
+			try:
+				f = open(directory_name + '/basic-environment.txt', 'r')
+				text = f.read()
+				f.close()
+				regex = r"^Linux.* (\w+) GNU\/Linux$"
+				matches = re.search(regex, text, re.MULTILINE)
+				if matches != None:
+					return matches.group(1)
+			except Exception as e:
+				print ('could not determine architecture for the supportconfig directory. Please supply one with -a.')
+				return 'unknown'
 		return 'unknown'
 
 	def read_rpmlist(self, directory_name):
@@ -207,7 +221,8 @@ class SCCVersion():
 		print('-1|--show-unknown\t\tshows unknown packages as they are found.\n')
 		print('-2|--show-differences)\t\tshows packages that have updates available as they are found.\n')
 		print('-3|--show-uptodate)\t\tshows packages that are on par with the updated versions as they are found.\n')
-		print('-d|--supportconfig\t\tAnalyzes a supportconfig directory and generates CSV reports for up-to-date, not found and different packages.')
+		print('-d|--supportconfig\t\tAnalyzes a supportconfig directory and generates CSV reports for up-to-date, not found and different packages.\n')
+		print('-a|--arch\t\tSupply an architecture for the supportconfig analysis.')
 		print('\n')
 		return
 
@@ -273,7 +288,10 @@ class SCCVersion():
 
 		print('Analyzing supportconfig directory: ' + supportconfigdir)
 		
-		match_arch = self.find_arch(supportconfigdir)
+		if self.arch:
+			match_arch = self.arch
+		else:
+			match_arch = self.find_arch(supportconfigdir)
 		match_os = self.find_cpe(supportconfigdir, match_arch)
 		if match_os != -1 and match_arch != "unknown":
 			print('product name = ' + self.product_list[match_os]['name'] + ' (id ' + str(match_os) + ', ' + match_arch + ')')
@@ -487,7 +505,7 @@ def main():
 	signal.signal(signal.SIGINT, sv.cleanup)
 
 	try:
-		opts,args = getopt.getopt(sys.argv[1:],  "hp:n:lsvt123d:", [ "help", "product=", "name=", "list-products", "short", "verbose", "test", "show-unknown", "show-differences", "show-uptodate", "supportconfig=" ])
+		opts,args = getopt.getopt(sys.argv[1:],  "hp:n:lsvt123a:d:", [ "help", "product=", "name=", "list-products", "short", "verbose", "test", "show-unknown", "show-differences", "show-uptodate", "arch=", "supportconfig=" ])
 	except getopt.GetoptError as err:
 		print(err)
 		sv.usage()
@@ -503,6 +521,8 @@ def main():
 		if o in ("-h", "--help"):
 			sv.show_help()
 			exit(1)
+		elif o in ("-a", "--arch"):
+			sv.arch = a
 		elif o in ("-s", "--short"):
 			sv.short_response = True
 		elif o in ("-p", "--product"):
