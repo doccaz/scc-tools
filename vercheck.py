@@ -56,7 +56,11 @@ class SCCVersion():
 		1765: { 'name': 'SUSE Linux Enterprise Server for SAP Applications 15 SP1 ppc64le', 'arch': 'ppc64le', 'identifier': 'cpe:/o:suse:sles_sap:15:sp1' },	
 		1766: { 'name': 'SUSE Linux Enterprise Server for SAP Applications 15 SP1 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:suse:sles_sap:15:sp1' },
 		1940: { 'name': 'SUSE Linux Enterprise Server for SAP Applications 15 SP2 ppc64le', 'arch': 'ppc64le', 'identifier': 'cpe:/o:suse:sles_sap:15:sp2' },	
-		1941: { 'name': 'SUSE Linux Enterprise Server for SAP Applications 15 SP2 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:suse:sles_sap:15:sp2' },
+		1941: { 'name': 'SUSE Linux Enterprise Server for SAP Applications 15 SP2 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:suse:sles_sap:15:sp2' },  
+  		2135: { 'name': 'SUSE Linux Enterprise Server for SAP Applications 15 SP3 ppc64le', 'arch': 'ppc64le', 'identifier': 'cpe:/o:suse:sles_sap:15:sp3' },
+		2136: { 'name': 'SUSE Linux Enterprise Server for SAP Applications 15 SP3 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:suse:sles_sap:15:sp3' },
+		2293: { 'name': 'SUSE Linux Enterprise Server for SAP Applications 15 SP4 ppc64le', 'arch': 'ppc64le', 'identifier': 'cpe:/o:suse:sles_sap:15:sp4' },
+		2294: { 'name': 'SUSE Linux Enterprise Server for SAP Applications 15 SP4 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:suse:sles_sap:15:sp4' },
 		1575: { 'name': 'SUSE Linux Enterprise Server 15 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:suse:sles:15' },
 		1584: { 'name': 'SUSE Linux Enterprise Server 15 s390x', 'arch': 's390x', 'identifier': 'cpe:/o:suse:sles:15' },
 		1585: { 'name': 'SUSE Linux Enterprise Server 15 ppc64le', 'arch': 'ppc64le', 'identifier': 'cpe:/o:suse:sles:15' },
@@ -72,12 +76,22 @@ class SCCVersion():
 		1938: { 'name': 'SUSE Linux Enterprise Server 15 SP2 s390x', 'arch': 's390x', 'identifier': 'cpe:/o:suse:sles:15:sp2' },
 		1939: { 'name': 'SUSE Linux Enterprise Server 15 SP2 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:suse:sles:15:sp2' },
 		1935: { 'name': 'SUSE Linux Enterprise Desktop 15 SP2 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:suse:sled:15:sp2' },
-		1612: { 'name': 'SUSE Linux Enterprise Server for SAP 15 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:suse:sles_sap:15' },
-		1613: { 'name': 'SUSE Linux Enterprise Server for SAP Applications 15 ppc64le', 'arch': 'x86_64', 'identifier': 'cpe:/o:suse:sles_sap:15' },
-		1765: { 'name': 'SUSE Linux Enterprise Server for SAP Applications 15 SP1 ppc64le', 'arch': 'ppc64le', 'identifier': 'cpe:/o:suse:sles_sap:15:sp1' },
-		1766: { 'name': 'SUSE Linux Enterprise Server for SAP Applications 15 SP1 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:suse:sles_sap:15:sp1' },
-		1940: { 'name': 'SUSE Linux Enterprise Server for SAP 15 SP2 ppc64le', 'arch': 'ppc64le', 'identifier': 'cpe:/o:suse:sles_sap:15:sp2' },
-		1941: { 'name': 'SUSE Linux Enterprise Server for SAP 15 SP2 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:suse:sles_sap:15:sp2' },
+  		2137: { 'name': 'SUSE Linux Enterprise Server 15 SP3 aarch64', 'arch': 'aarch64', 'identifier': 'cpe:/o:suse:sles:15:sp3' },
+		2138: { 'name': 'SUSE Linux Enterprise Server 15 SP3 ppc64le', 'arch': 'ppc64le', 'identifier': 'cpe:/o:suse:sles:15:sp3' },
+		2139: { 'name': 'SUSE Linux Enterprise Server 15 SP3 s390x', 'arch': 's390x', 'identifier': 'cpe:/o:suse:sles:15:sp3' },
+  		2140: { 'name': 'SUSE Linux Enterprise Server 15 SP3 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:suse:sles:15:sp3' },
+		2134: { 'name': 'SUSE Linux Enterprise Desktop 15 SP3 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:suse:sled:15:sp3' }, 
+   		2289: { 'name': 'SUSE Linux Enterprise Server 15 SP4 aarch64', 'arch': 'aarch64', 'identifier': 'cpe:/o:suse:sles:15:sp4' },
+		2290: { 'name': 'SUSE Linux Enterprise Server 15 SP4 ppc64le', 'arch': 'ppc64le', 'identifier': 'cpe:/o:suse:sles:15:sp4' },
+		2291: { 'name': 'SUSE Linux Enterprise Server 15 SP4 s390x', 'arch': 's390x', 'identifier': 'cpe:/o:suse:sles:15:sp4' },
+  		2292: { 'name': 'SUSE Linux Enterprise Server 15 SP4 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:suse:sles:15:sp4' },
+		2295: { 'name': 'SUSE Linux Enterprise Desktop 15 SP4 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:suse:sled:15:sp4' },
+		1929: { 'name': 'openSUSE Leap 15.1 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:opensuse:leap:15.1' },
+		2001: { 'name': 'openSUSE Leap 15.2 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:opensuse:leap:15.2' },
+		2233: { 'name': 'openSUSE Leap 15.3 aarch64', 'arch': 'aarch64', 'identifier': 'cpe:/o:opensuse:leap:15.3' },
+		2234: { 'name': 'openSUSE Leap 15.3 ppc64le', 'arch': 'ppc64le', 'identifier': 'cpe:/o:opensuse:leap:15.3' },
+		2235: { 'name': 'openSUSE Leap 15.3 s390x', 'arch': 's390x', 'identifier': 'cpe:/o:opensuse:leap:15.3' },
+		2236: { 'name': 'openSUSE Leap 15.3 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:opensuse:leap:15.3' },
 	}
 
 
@@ -108,6 +122,12 @@ class SCCVersion():
 
 	short_response = False
 
+	# default output directory for the reports
+	outputdir = os.getcwd()
+ 
+	def set_outputdir(self, newdir):
+		self.outputdir = newdir
+ 
 	def set_verbose(self, verbose):
 		self.verbose = verbose
 
@@ -207,7 +227,7 @@ class SCCVersion():
 		return
 
 	def usage(self):
-		print('Usage: ' + sys.argv[0] + ' [-l|--list-products] -p|--product product id -n|--name <package name> [-s|--short] [-v|--verbose] [-1|--show-unknown] [-2|--show-differences] [-3|--show-uptodate] [-d|--supportconfig]')
+		print('Usage: ' + sys.argv[0] + ' [-l|--list-products] -p|--product product id -n|--name <package name> [-s|--short] [-v|--verbose] [-1|--show-unknown] [-2|--show-differences] [-3|--show-uptodate] [-o|--outputdir] [-d|--supportconfig]')
 		return
 
 	def show_help(self):
@@ -221,6 +241,7 @@ class SCCVersion():
 		print('-1|--show-unknown\t\tshows unknown packages as they are found.\n')
 		print('-2|--show-differences)\t\tshows packages that have updates available as they are found.\n')
 		print('-3|--show-uptodate)\t\tshows packages that are on par with the updated versions as they are found.\n')
+		print('-o|--outputdir)\t\tspecify an output directory for the reports. Default: current directory.\n')
 		print('-d|--supportconfig\t\tAnalyzes a supportconfig directory and generates CSV reports for up-to-date, not found and different packages.\n')
 		print('-a|--arch\t\tSupply an architecture for the supportconfig analysis.')
 		print('\n')
@@ -346,9 +367,14 @@ class SCCVersion():
 		return (self.uptodate, self.notfound, self.different)
 
 	def write_reports(self):
-		print ('writing CSV reports to ' + os.getcwd() + '\n')
+		print ('writing CSV reports to ' + self.outputdir + '\n')
+		try:
+			os.makedirs(self.outputdir, exist_ok=True)
+		except OSError as e:
+			print('error creating output directory at %s: %s' %(self.outputdir, str(e)))
+   
 		try:	
-			with open('vercheck-uptodate-' + sc_name + '.csv', 'w') as f:
+			with open(self.outputdir + '/vercheck-uptodate-' + sc_name + '.csv', 'w') as f:
 				for p, c in self.uptodate:
 					f.write(p + ',' + c + '\n')
 				f.close()
@@ -357,7 +383,7 @@ class SCCVersion():
 			return
 		
 		try:	
-			with open('vercheck-notfound-' + sc_name + '.csv', 'w') as f:
+			with open(self.outputdir + '/vercheck-notfound-' + sc_name + '.csv', 'w') as f:
 				for p, c in self.notfound:
 					f.write(p + ',' + c + '\n')
 				f.close()
@@ -366,7 +392,7 @@ class SCCVersion():
 			return
 
 		try:	
-			with open('vercheck-different-' + sc_name + '.csv', 'w') as f:
+			with open(self.outputdir + '/vercheck-different-' + sc_name + '.csv', 'w') as f:
 				for p, c, l  in self.different:
 					f.write(p + ',' + c + ',' + l + '\n')
 				f.close()
@@ -505,7 +531,7 @@ def main():
 	signal.signal(signal.SIGINT, sv.cleanup)
 
 	try:
-		opts,args = getopt.getopt(sys.argv[1:],  "hp:n:lsvt123a:d:", [ "help", "product=", "name=", "list-products", "short", "verbose", "test", "show-unknown", "show-differences", "show-uptodate", "arch=", "supportconfig=" ])
+		opts,args = getopt.getopt(sys.argv[1:],  "hp:n:lsvt123a:d:o:", [ "help", "product=", "name=", "list-products", "short", "verbose", "test", "show-unknown", "show-differences", "show-uptodate", "arch=", "supportconfig=", "outputdir=" ])
 	except getopt.GetoptError as err:
 		print(err)
 		sv.usage()
@@ -543,6 +569,8 @@ def main():
 		elif o in ("-t", "--test"):
 			sv.test()
 			exit(0)
+		elif o in ("-o", "--outputdir"):
+			sv.set_outputdir(a)
 		elif o in ("-d", "--supportconfig"):
 			supportconfigdir = a
 			uptodate, notfound, different = sv.check_supportconfig(supportconfigdir)
