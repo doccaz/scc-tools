@@ -478,11 +478,11 @@ class PackageSearchEngine(Thread):
 			if r.status == 200:
 				if tries > 0:
 					print('thread %d got a good reply after %d tries' % (self.instance_nr, tries))
-				return_data = json.loads(r.data)
+				return_data = json.loads(r.data.decode('utf-8'))
 				valid_response = True
 			elif r.status in self.error_states:
 				if r.data:
-					json_data = json.loads(r.data)
+					json_data = json.loads(r.data.decode('utf-8'))
 					print('cannot be processed due to error: [' + json_data['error'] + ']')
 				print('thread %d got a fatal error (%d). Results will be incomplete!\nPlease contact the service administrators or try again later.' % (self.instance_nr, r.status))
 				break
