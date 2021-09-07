@@ -352,7 +352,6 @@ class SCCVersion():
 				if self.verbose:
 					print('latest version for ' + refined_data['query'] + ' on product ID ' + str(refined_data['product_id']) +  ' is ' + refined_data['results'][0]['version'] + '-' + refined_data['results'][0]['release'])
 				if len(refined_data['results']) == 0:
-        #### FIXME
 					target = self.product_list[refined_data['product_id']]
 					ver_regex = r"cpe:/o:suse:(sles|sled|sles_sap):(\d+)"
 					target_version = 'SUSE Linux Enterprise ' + re.match(ver_regex, target['identifier']).group(2)
