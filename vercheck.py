@@ -99,11 +99,13 @@ class SCCVersion():
 	uptodate = []
 	notfound = []
 	different = []
-
+	unsupported = []
+ 
 	# report flags
 	show_unknown = False
 	show_diff = False
 	show_uptodate = False
+	show_unsupported = False
 
 	# verbose messages
 	verbose = False
@@ -180,7 +182,7 @@ class SCCVersion():
 	def read_rpmlist(self, directory_name):
 		rpmlist = []
 		regex_start = r"(^NAME.*VERSION)\n"
-		regex_package = r"(\S*)\s{2,}\S.*\s{2,}(.*)"
+		regex_package = r"(\S*)\s{2,}(\S{2,}.*)\s{2,}(.*)"
 		regex_end = r"(^$)\n"
 		try:
 			f = open(directory_name + '/rpm.txt', 'r')
@@ -201,11 +203,12 @@ class SCCVersion():
 					matches = re.search(regex_package, line)
 					if matches:	
 						rpmname = matches.group(1)
-						rpmversion = matches.group(2)
+						rpmdistro = matches.group(2).strip(' \t\n')
+						rpmversion = matches.group(3)
 						if rpmname.startswith('gpg-pubkey'):
 							continue
-						if rpmname != '' and rpmversion != '':
-							rpmlist.append([rpmname, rpmversion])
+						if rpmname != '' and rpmdistro != '' and rpmversion != '':
+							rpmlist.append([rpmname, rpmdistro, rpmversion])
 					else:
 						continue
 		except Exception as e:
@@ -227,7 +230,7 @@ class SCCVersion():
 		return
 
 	def usage(self):
-		print('Usage: ' + sys.argv[0] + ' [-l|--list-products] -p|--product product id -n|--name <package name> [-s|--short] [-v|--verbose] [-1|--show-unknown] [-2|--show-differences] [-3|--show-uptodate] [-o|--outputdir] [-d|--supportconfig]')
+		print('Usage: ' + sys.argv[0] + ' [-l|--list-products] -p|--product product id -n|--name <package name> [-s|--short] [-v|--verbose] [-1|--show-unknown] [-2|--show-differences] [-3|--show-uptodate] [-4|--show-unsupported] [-o|--outputdir] [-d|--supportconfig]')
 		return
 
 	def show_help(self):
@@ -241,6 +244,7 @@ class SCCVersion():
 		print('-1|--show-unknown\t\tshows unknown packages as they are found.\n')
 		print('-2|--show-differences)\t\tshows packages that have updates available as they are found.\n')
 		print('-3|--show-uptodate)\t\tshows packages that are on par with the updated versions as they are found.\n')
+		print('-4|--show-unsupported)\t\tshows packages that have a vendor that is different from the system it was collected from.\n')
 		print('-o|--outputdir)\t\tspecify an output directory for the reports. Default: current directory.\n')
 		print('-d|--supportconfig\t\tAnalyzes a supportconfig directory and generates CSV reports for up-to-date, not found and different packages.\n')
 		print('-a|--arch\t\tSupply an architecture for the supportconfig analysis.')
@@ -254,7 +258,7 @@ class SCCVersion():
 
 		for k, v in self.product_list.items():
 			print('searching for package \"glibc\" in product id \"' + str(k) + '\" (' + v['name'] + ')')
-			threads.insert(instance_nr, PackageSearchEngine(instance_nr, k, package_name, '0'))
+			threads.insert(instance_nr, PackageSearchEngine(instance_nr, k, package_name, v['name'], '0'))
 			threads[instance_nr].start()
 			instance_nr = instance_nr + 1
 
@@ -277,7 +281,7 @@ class SCCVersion():
 		threads = []
 
 		print('searching for package \"' + package_name + '\" in product id \"' + str(product_id) + '\" (' + self.product_list[product_id]['name'] + ')')
-		threads.insert(0, PackageSearchEngine(0, product_id, package_name, '0'))
+		threads.insert(0, PackageSearchEngine(0, product_id, package_name, self.product_list[product_id]['name'], '0'))
 		threads[0].start()
 
 		# fetch results for the only thread
@@ -329,7 +333,7 @@ class SCCVersion():
 		# fetch results for all threads
 		for chunk in self.list_chunk(rpmlist, self.max_threads):
 			for p in chunk:
-				threads.insert(count, PackageSearchEngine(count, match_os, p[0], p[1]))
+				threads.insert(count, PackageSearchEngine(count, match_os, p[0], p[1], p[2]))
 				threads[count].start()
 				count+=1
 			progress = '[' + str(count) + '/' + str(total) + ']'
@@ -348,7 +352,14 @@ class SCCVersion():
 				if self.verbose:
 					print('latest version for ' + refined_data['query'] + ' on product ID ' + str(refined_data['product_id']) +  ' is ' + refined_data['results'][0]['version'] + '-' + refined_data['results'][0]['release'])
 				if len(refined_data['results']) == 0:
-					self.notfound.append([refined_data['query'], refined_data['supplied_version']])
+        #### FIXME
+					target = self.product_list[refined_data['product_id']]
+					ver_regex = r"cpe:/o:suse:(sles|sled|sles_sap):(\d+)"
+					target_version = 'SUSE Linux Enterprise ' + re.match(ver_regex, target['identifier']).group(2)
+					if ( ('suse:sle' in str(target['identifier'])) and (str(refined_data['supplied_distro']) not in target_version)):
+						self.unsupported.append([refined_data['query'], refined_data['supplied_distro'], refined_data['supplied_version']])
+					else:
+						self.notfound.append([refined_data['query'], refined_data['supplied_distro'], refined_data['supplied_version']])
 				else:
 					latest = refined_data['results'][0]['version'] + '-' + refined_data['results'][0]['release']
 					#print('latest = ' + latest)
@@ -364,7 +375,7 @@ class SCCVersion():
 		sys.stdout.write('\nDone.\n')
 		sys.stdout.flush()
 		
-		return (self.uptodate, self.notfound, self.different)
+		return (self.uptodate, self.unsupported, self.notfound, self.different)
 
 	def write_reports(self):
 		print ('writing CSV reports to ' + self.outputdir + '\n')
@@ -384,8 +395,17 @@ class SCCVersion():
 		
 		try:	
 			with open(self.outputdir + '/vercheck-notfound-' + sc_name + '.csv', 'w') as f:
-				for p, c in self.notfound:
-					f.write(p + ',' + c + '\n')
+				for p, d, c in self.notfound:
+					f.write(p + ',' + d + ',' + c + '\n')
+				f.close()
+		except Exception as e:
+			print('Error writing file: ' + str(e))
+			return
+
+		try:	
+			with open(self.outputdir + '/vercheck-unsupported-' + sc_name + '.csv', 'w') as f:
+				for p, d, c in self.unsupported:
+					f.write(p + ',' + d + ',' + c + '\n')
 				f.close()
 		except Exception as e:
 			print('Error writing file: ' + str(e))
@@ -417,12 +437,20 @@ class SCCVersion():
 					print(str.ljust(p, field_size) + '\t' + str.ljust(c, field_size) + '\t' + str.ljust(l, field_size))
 			print('\nTotal: ' + str(len(self.different)) + ' packages')
 
+		if self.show_unsupported:
+			print('\n\t\t---  Unsupported packages ---\n')
+			print(str.ljust('Name', field_size) + '\t' + str.ljust('Vendor', field_size) + '\t' + str.ljust('Current Version', field_size))
+			print('=' * 80)
+			for p, c, l  in self.unsupported:
+					print(str.ljust(p, field_size) + '\t' + str.ljust(c, field_size) + '\t' + str.ljust(l, field_size))
+			print('\nTotal: ' + str(len(self.unsupported)) + ' packages')
+   
 		if self.show_unknown:
 			print('\n\t\t--- Unknown packages ---\n')
-			print(str.ljust('Name', field_size) + '\t' + str.ljust('Current Version', field_size))
+			print(str.ljust('Name', field_size) + '\t' + str.ljust('Vendor', field_size) + '\t' + str.ljust('Current Version', field_size))
 			print('=' * 80)
-			for p, c  in self.notfound:
-					print(str.ljust(p, 30) + '\t' + c)	
+			for p, c, l  in self.notfound:
+					print(str.ljust(p, field_size) + '\t' + str.ljust(c, field_size) + '\t' + str.ljust(l, field_size))
 			print('\nTotal: ' + str(len(self.notfound)) + ' packages')
 		return
 
@@ -447,19 +475,20 @@ class PackageSearchEngine(Thread):
 
 	results = {}
 
-	def __init__(self, instance_nr, product_id, package_name, supplied_version):
+	def __init__(self, instance_nr, product_id, package_name, supplied_distro, supplied_version):
 		super(PackageSearchEngine, self).__init__()
 		urllib3.disable_warnings()
 		self.instance_nr = instance_nr
 		self.product_id = product_id
 		self.package_name = package_name
+		self.supplied_distro = supplied_distro
 		self.supplied_version = supplied_version
 	
 	def mySort(self, e):
 		return LooseVersion(e['version'] + '-' + e['release'])
 
 	def get_results(self):
-		return { 'product_id': self.product_id, 'query': self.package_name, 'supplied_version': self.supplied_version, 'results': self.results }
+		return { 'product_id': self.product_id, 'query': self.package_name, 'supplied_distro': self.supplied_distro, 'supplied_version': self.supplied_version, 'results': self.results }
 
 	def run(self):
 		#print('[Thread ' + str(self.instance_nr) + '] looking for ' + self.package_name + ' on product id ' + str(self.product_id))
@@ -531,7 +560,7 @@ def main():
 	signal.signal(signal.SIGINT, sv.cleanup)
 
 	try:
-		opts,args = getopt.getopt(sys.argv[1:],  "hp:n:lsvt123a:d:o:", [ "help", "product=", "name=", "list-products", "short", "verbose", "test", "show-unknown", "show-differences", "show-uptodate", "arch=", "supportconfig=", "outputdir=" ])
+		opts,args = getopt.getopt(sys.argv[1:],  "hp:n:lsvt1234a:d:o:", [ "help", "product=", "name=", "list-products", "short", "verbose", "test", "show-unknown", "show-differences", "show-uptodate", "show-unsupported", "arch=", "supportconfig=", "outputdir=" ])
 	except getopt.GetoptError as err:
 		print(err)
 		sv.usage()
@@ -540,8 +569,8 @@ def main():
 	product_id = -1
 	package_name = ''
 	short_response = False
-	global show_unknown, show_diff, show_uptodate
-	global uptodate, different, notfound
+	global show_unknown, show_diff, show_uptodate, show_unsupported
+	global uptodate, different, notfound, unsupported
 
 	for o, a in opts:
 		if o in ("-h", "--help"):
@@ -564,6 +593,8 @@ def main():
 			sv.show_diff = True
 		elif o in ("-3", "--show-uptodate"):
 			sv.show_uptodate = True
+		elif o in ("-4", "--show-unsupported"):
+			sv.show_unsupported = True
 		elif o in ("-v", "--verbose"):
 			sv.set_verbose(True)
 		elif o in ("-t", "--test"):
@@ -573,7 +604,7 @@ def main():
 			sv.set_outputdir(a)
 		elif o in ("-d", "--supportconfig"):
 			supportconfigdir = a
-			uptodate, notfound, different = sv.check_supportconfig(supportconfigdir)
+			uptodate, unsupported, notfound, different = sv.check_supportconfig(supportconfigdir)
 			sv.write_reports()
 			exit(0)
 		else:
