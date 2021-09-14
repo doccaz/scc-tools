@@ -7,11 +7,17 @@ import json
 import getopt
 import signal
 from distutils.version import LooseVersion
+import socket
+from urllib3.connection import HTTPConnection
+import pdb
 
 ### main class that deals with command lines, reports and everything else
 class SCCVersion():
 
 	# static product list (taken from RMT and other sources)
+	# rmt-cli products list --name "SUSE Linux Enterprise Server" --all
+	# rmt-cli products list --name "SUSE Linux Enterprise Desktop" --all
+	# rmt-cli products list --name "openSUSE" --all
 	product_list = {
 		1115: { 'name': 'SUSE Linux Enterprise Server 12 s390x', 'arch': 's390x', 'identifier': 'cpe:/o:suse:sles:12' },
 		1116: { 'name': 'SUSE Linux Enterprise Server 12 ppc64le', 'arch': 'ppc64le', 'identifier': 'cpe:/o:suse:sles:12' },
@@ -94,7 +100,15 @@ class SCCVersion():
 		2236: { 'name': 'openSUSE Leap 15.3 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:opensuse:leap:15.3' },
 	}
 
+	# to get the list of product IDs:
+	# rmt-cli products list --name "SUSE Manager Server" --all
+	suma_product_list = {
 
+		1899: { 'name': 'SUSE Manager Server 4.0', 'identifier': '4.0' },
+		2012: { 'name': 'SUSE Manager Server 4.1', 'identifier': '4.1' },
+		2222: { 'name': 'SUSE Manager Server 4.2', 'identifier': '4.2' },
+	}
+ 
 	# result lists
 	uptodate = []
 	notfound = []
@@ -139,16 +153,31 @@ class SCCVersion():
 		sys.exit(0)
 		return
 
+	def find_suma(self, directory_name):
+		regex_suma=r"SUSE Manager release (.*) .*"
+		try:
+			f = open(directory_name + '/basic-environment.txt', 'r')
+			text = f.read()
+			f.close()
+			matches_suma = re.search(regex_suma, text)
+			for p in self.suma_product_list:
+				if matches_suma is not None and matches_suma.group(1) == self.suma_product_list[p]['identifier']:
+					return p
+		except Exception as e:
+			print ('error: ' + str(e))
+		return -1
+
+     
 	def find_cpe(self, directory_name, architecture):
-		regex = r"CPE_NAME=\"(.*)\""
+		regex_os= r"CPE_NAME=\"(.*)\""
 		
 		try:
 			f = open(directory_name + '/basic-environment.txt', 'r')
 			text = f.read()
 			f.close()
-			matches = re.search(regex, text)
+			matches_os = re.search(regex_os, text)
 			for p in self.product_list:
-				if matches.group(1) == self.product_list[p]['identifier'] and architecture == self.product_list[p]['arch']:
+				if matches_os.group(1) == self.product_list[p]['identifier'] and architecture == self.product_list[p]['arch']:
 					return p
 		except Exception as e:
 			print ('error: ' + str(e))
@@ -318,8 +347,14 @@ class SCCVersion():
 		else:
 			match_arch = self.find_arch(supportconfigdir)
 		match_os = self.find_cpe(supportconfigdir, match_arch)
+		match_suma = self.find_suma(supportconfigdir)
+		selected_product_id = -1
 		if match_os != -1 and match_arch != "unknown":
 			print('product name = ' + self.product_list[match_os]['name'] + ' (id ' + str(match_os) + ', ' + match_arch + ')')
+			selected_product_id = match_os
+			if match_suma != -1:
+				print('found ' + self.suma_product_list[match_suma]['name'] + ', will use alternate id ' + str(match_suma))
+				selected_product_id = match_suma
 		else:
 			print('error while determining CPE')
 			return ([],[],[])
@@ -333,7 +368,7 @@ class SCCVersion():
 		# fetch results for all threads
 		for chunk in self.list_chunk(rpmlist, self.max_threads):
 			for p in chunk:
-				threads.insert(count, PackageSearchEngine(count, match_os, p[0], p[1], p[2]))
+				threads.insert(count, PackageSearchEngine(count, selected_product_id, p[0], p[1], p[2]))
 				threads[count].start()
 				count+=1
 			progress = '[' + str(count) + '/' + str(total) + ']'
@@ -347,19 +382,22 @@ class SCCVersion():
 		for thread_number in range(count):
 			threads[thread_number].join()
 			refined_data = threads[thread_number].get_results()
-			#print('refined data = ' + str(refined_data))
+			# print('refined data = ' + str(refined_data))
 			try:
-				if self.verbose:
-					print('latest version for ' + refined_data['query'] + ' on product ID ' + str(refined_data['product_id']) +  ' is ' + refined_data['results'][0]['version'] + '-' + refined_data['results'][0]['release'])
 				if len(refined_data['results']) == 0:
-					target = self.product_list[refined_data['product_id']]
+					target = self.product_list[match_os]
 					ver_regex = r"cpe:/o:suse:(sles|sled|sles_sap):(\d+)"
 					target_version = 'SUSE Linux Enterprise ' + re.match(ver_regex, target['identifier']).group(2)
+					#print("package does not exist, target_version is " + target_version)
+					#print("supplied distro for package " + str(refined_data['query']) + ' is ' + str(refined_data['supplied_distro']))
+					#print("target identifier is " + target_version)
 					if ( ('suse:sle' in str(target['identifier'])) and (str(refined_data['supplied_distro']) not in target_version)):
 						self.unsupported.append([refined_data['query'], refined_data['supplied_distro'], refined_data['supplied_version']])
 					else:
 						self.notfound.append([refined_data['query'], refined_data['supplied_distro'], refined_data['supplied_version']])
 				else:
+					if self.verbose:
+						print('latest version for ' + refined_data['query'] + ' on product ID ' + str(refined_data['product_id']) +  ' is ' + refined_data['results'][0]['version'] + '-' + refined_data['results'][0]['release'])
 					latest = refined_data['results'][0]['version'] + '-' + refined_data['results'][0]['release']
 					#print('latest = ' + latest)
 				
@@ -462,7 +500,11 @@ class PackageSearchEngine(Thread):
 
 	# single instance for urllib3 pool
 	http = urllib3.PoolManager(maxsize=max_threads)
-
+  
+	# set default socket options
+	# HTTPConnection.default_socket_options += [ (socket.SOL_SOCKET, socket.SO_REUSEADDR, 1) ]
+	# HTTPConnection.debuglevel = 15
+ 
 	# maximum retries for each thread
 	max_tries = 5
 
