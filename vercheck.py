@@ -2,13 +2,14 @@
 import re
 import sys, os, time
 from threading import Thread
-import urllib3
+import urllib3, urllib
 import json
 import getopt
 import signal
 from distutils.version import LooseVersion
-import socket
-from urllib3.connection import HTTPConnection
+import string
+#import socket
+#from urllib3.connection import HTTPConnection
 import pdb
 
 ### main class that deals with command lines, reports and everything else
@@ -309,8 +310,13 @@ class SCCVersion():
 
 		threads = []
 
-		print('searching for package \"' + package_name + '\" in product id \"' + str(product_id) + '\" (' + self.product_list[product_id]['name'] + ')')
-		threads.insert(0, PackageSearchEngine(0, product_id, package_name, self.product_list[product_id]['name'], '0'))
+		if product_id in self.suma_product_list:
+			plist = self.suma_product_list
+		else:
+			plist = self.product_list
+
+		print('searching for package \"' + package_name + '\" in product id \"' + str(product_id) + '\" (' + plist[product_id]['name'] + ')')
+		threads.insert(0, PackageSearchEngine(0, product_id, package_name, plist[product_id]['name'], '0'))
 		threads[0].start()
 
 		# fetch results for the only thread
@@ -352,12 +358,15 @@ class SCCVersion():
 		if match_os != -1 and match_arch != "unknown":
 			print('product name = ' + self.product_list[match_os]['name'] + ' (id ' + str(match_os) + ', ' + match_arch + ')')
 			selected_product_id = match_os
+			base_regex = r"Basesystem.*"	# primary repositories for trusted updates should have this regex
 			if match_suma != -1:
 				print('found ' + self.suma_product_list[match_suma]['name'] + ', will use alternate id ' + str(match_suma))
 				selected_product_id = match_suma
+				base_regex = r"SUSE Manager.*"	# primary repositories for trusted updates should have this regex
+
 		else:
 			print('error while determining CPE')
-			return ([],[],[])
+			return ([],[],[],[])
 
 		rpmlist = self.read_rpmlist(supportconfigdir)
 		total = len(rpmlist)
@@ -384,27 +393,38 @@ class SCCVersion():
 			refined_data = threads[thread_number].get_results()
 			# print('refined data = ' + str(refined_data))
 			try:
+				target = self.product_list[match_os]
+				ver_regex = r"cpe:/o:suse:(sles|sled|sles_sap):(\d+)"
+				target_version = 'SUSE Linux Enterprise ' + re.match(ver_regex, target['identifier']).group(2)
+				#print("package does not exist, target_version is " + target_version)
+				#print("supplied distro for package " + str(refined_data['query']) + ' is ' + str(refined_data['supplied_distro']))
+				#print("target identifier is " + target_version)
+				if ( ('suse:sle' in str(target['identifier'])) and (str(refined_data['supplied_distro']) not in target_version)):
+					self.unsupported.append([refined_data['query'], refined_data['supplied_distro'], refined_data['supplied_version']])
+     
 				if len(refined_data['results']) == 0:
-					target = self.product_list[match_os]
-					ver_regex = r"cpe:/o:suse:(sles|sled|sles_sap):(\d+)"
-					target_version = 'SUSE Linux Enterprise ' + re.match(ver_regex, target['identifier']).group(2)
-					#print("package does not exist, target_version is " + target_version)
-					#print("supplied distro for package " + str(refined_data['query']) + ' is ' + str(refined_data['supplied_distro']))
-					#print("target identifier is " + target_version)
-					if ( ('suse:sle' in str(target['identifier'])) and (str(refined_data['supplied_distro']) not in target_version)):
-						self.unsupported.append([refined_data['query'], refined_data['supplied_distro'], refined_data['supplied_version']])
-					else:
-						self.notfound.append([refined_data['query'], refined_data['supplied_distro'], refined_data['supplied_version']])
+					self.notfound.append([refined_data['query'], refined_data['supplied_distro'], refined_data['supplied_version']])
 				else:
+					latest = None
+					for item in refined_data['results']:
+						if re.match(base_regex, item['repository']) is not None:
+							if self.verbose:
+								print('---> found version %s-%s for package %s in repository %s which is a base repository, ignoring the rest' % (item['version'], item['release'], refined_data['query'], item['repository']))
+							latest = item['version'] + '-' + item['release']
+							selected_repo = item['repository']
+							break
 					if self.verbose:
-						print('latest version for ' + refined_data['query'] + ' on product ID ' + str(refined_data['product_id']) +  ' is ' + refined_data['results'][0]['version'] + '-' + refined_data['results'][0]['release'])
-					latest = refined_data['results'][0]['version'] + '-' + refined_data['results'][0]['release']
+						print('latest version for ' + refined_data['query'] + ' on product ID ' + str(refined_data['product_id']) +  ' is ' + refined_data['results'][0]['version'] + '-' + refined_data['results'][0]['release'] + ' in repository ' + refined_data['results'][0]['repository'])
 					#print('latest = ' + latest)
-				
+					if latest is None:
+						latest = refined_data['results'][0]['version'] + '-' + refined_data['results'][0]['release']
+						selected_repo = refined_data['results'][0]['repository']
+        		
 					if latest != refined_data['supplied_version']:
-						self.different.append([refined_data['query'], refined_data['supplied_version'], latest]) 
+						self.different.append([refined_data['query'], refined_data['supplied_version'], latest, selected_repo]) 
 					else:
 						self.uptodate.append([refined_data['query'], refined_data['supplied_version']]) 
+						
 			except IndexError:
 				#print('[thread ' + str(thread_number) + '] could not find any version for package ' + refined_data['query'])
 				pass
@@ -450,13 +470,13 @@ class SCCVersion():
 
 		try:	
 			with open(self.outputdir + '/vercheck-different-' + sc_name + '.csv', 'w') as f:
-				for p, c, l  in self.different:
-					f.write(p + ',' + c + ',' + l + '\n')
+				for p, c, l, r  in self.different:
+					f.write(p + ',' + c + ',' + l + ',' + r + '\n')
 				f.close()
 		except Exception as e:
 			print('Error writing file: ' + str(e))
 			return
-
+   
 		field_size = 30
 		if self.show_uptodate:
 			print('\n\t\t---  Up-to-date packages ---\n')
@@ -468,10 +488,10 @@ class SCCVersion():
 
 		if self.show_diff:
 			print('\n\t\t---  Different packages ---\n')
-			print(str.ljust('Name', field_size) + '\t' + str.ljust('Current Version', field_size) + '\t' + str.ljust('Latest Version', field_size))
-			print('=' * 80)
-			for p, c, l  in self.different:
-					print(str.ljust(p, field_size) + '\t' + str.ljust(c, field_size) + '\t' + str.ljust(l, field_size))
+			print(str.ljust('Name', field_size) + '\t' + str.ljust('Current Version', field_size) + '\t' + str.ljust('Latest Version', field_size) + '\t' + str.ljust('Repository', field_size))
+			print('=' * 132)
+			for p, c, l, r  in self.different:
+					print(str.ljust(p, field_size) + '\t' + str.ljust(c, field_size) + '\t' + str.ljust(l, field_size) + '\t' + str.ljust(r, field_size))
 			print('\nTotal: ' + str(len(self.different)) + ' packages')
 
 		if self.show_unsupported:
@@ -489,6 +509,7 @@ class SCCVersion():
 			for p, c, l  in self.notfound:
 					print(str.ljust(p, field_size) + '\t' + str.ljust(c, field_size) + '\t' + str.ljust(l, field_size))
 			print('\nTotal: ' + str(len(self.notfound)) + ' packages')
+
 		return
 
 
@@ -524,9 +545,14 @@ class PackageSearchEngine(Thread):
 		self.package_name = package_name
 		self.supplied_distro = supplied_distro
 		self.supplied_version = supplied_version
-	
+
 	def mySort(self, e):
-		return LooseVersion(e['version'] + '-' + e['release'])
+		if e['release'][0].isalpha():
+			release = e['release'][e['release'].index('.')+1:]
+		else:
+			release = e['release']
+		#print('release %s will be considered as %s' % (e['release'], release))
+		return LooseVersion(e['version'] + '-' + release)
 
 	def get_results(self):
 		return { 'product_id': self.product_id, 'query': self.package_name, 'supplied_distro': self.supplied_distro, 'supplied_version': self.supplied_version, 'results': self.results }
@@ -538,7 +564,7 @@ class PackageSearchEngine(Thread):
 		return_data = []
 		while not valid_response and tries < self.max_tries:
 			try:
-				r = self.http.request('GET', 'https://scc.suse.com/api/package_search/packages?product_id=' + str(self.product_id) + '&query=' + self.package_name, headers={'Accept-Encoding': 'gzip, deflate'})
+				r = self.http.request('GET', 'https://scc.suse.com/api/package_search/packages?product_id=' + str(self.product_id) + '&query=' + urllib.parse.quote(self.package_name), headers={'Accept-Encoding': 'gzip, deflate'})
 			except Exception as e:
 				print('Error while connecting: ' + str(e))
 				exit(1)
@@ -579,24 +605,21 @@ class PackageSearchEngine(Thread):
 						refined_data.append({'id':item['id'], 'version':item['version'], 'release': item['release'], 'repository': product['name'] + ' ' + product['edition'] + ' ' +  product['architecture']})
 						#print('added result: ' + item['name'] + ' ' + item['version'] + '-' + item['release'])
 
-		try:	
+		try:
 			refined_data.sort(reverse=True, key=self.mySort)
 		except TypeError as e:
 			# sometimes the version is so wildly mixed with letters that the sorter gets confused
 			# but it's okay to ignore this
-			# print('warning: sorting error due to strange version (may be ignored): ' + str(e))
+			#print('*** warning: sorting error due to strange version (may be ignored): ' + str(e))
 			pass
 
-		#print('refined data size: ' + str(len(refined_data)))
+		#print('refined data size: ' + str(len(refined_data)))  
 		self.results = refined_data
 		return
 
 
-
 #### main program
 def main():
-
-
 	sv = SCCVersion()
 	signal.signal(signal.SIGINT, sv.cleanup)
 
@@ -656,17 +679,20 @@ def main():
 		sv.usage()
 		exit(2)
 
-	if product_id not in sv.product_list:
+	if product_id in sv.suma_product_list:
+		plist = sv.suma_product_list
+	else:
+		plist = sv.product_list
+  
+	if product_id not in plist:
 		print ('Product ID ' + str(product_id) + ' is unknown.')
 	else:
 		if sv.verbose:
-			print ('Using product ID ' + str(product_id) +  ' ('  + sv.product_list[product_id]['name'] + ')')
+			print ('Using product ID ' + str(product_id) +  ' ('  + plist[product_id]['name'] + ')')
 	
 	sv.search_package(product_id, package_name)
 
-
 	return
-
 
 if __name__ == "__main__":
 	main()
