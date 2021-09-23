@@ -337,6 +337,15 @@ class SCCVersion():
 				print('could not find any version for package ' + package_name)
 		return
 
+	def is_newer(self, version_one, version_two):
+		result = False
+		try:
+			v1 = LooseVersion(str(version_one))
+			v2 = LooseVersion(str(version_two))
+			result = v1.__gt__(v2)
+		except TypeError as e:
+			print('error comparing: %s and %s (%s and %s)' % (version_one, version_two, str(v1.version), str(v2.version)))
+		return result
 
 	def check_supportconfig(self, supportconfigdir):
 
@@ -358,7 +367,7 @@ class SCCVersion():
 		if match_os != -1 and match_arch != "unknown":
 			print('product name = ' + self.product_list[match_os]['name'] + ' (id ' + str(match_os) + ', ' + match_arch + ')')
 			selected_product_id = match_os
-			base_regex = r"Basesystem.*"	# primary repositories for trusted updates should have this regex
+			base_regex = r"(SUSE Linux Enterprise.*|Basesystem.*)"	# primary repositories for trusted updates should have this regex
 			if match_suma != -1:
 				print('found ' + self.suma_product_list[match_suma]['name'] + ', will use alternate id ' + str(match_suma))
 				selected_product_id = match_suma
@@ -407,7 +416,7 @@ class SCCVersion():
 				else:
 					latest = None
 					for item in refined_data['results']:
-						if re.match(base_regex, item['repository']) is not None:
+						if re.match(base_regex, item['repository']) is not None and self.is_newer(item['version'] + '-' + item['release'], refined_data['supplied_version']):
 							if self.verbose:
 								print('---> found version %s-%s for package %s in repository %s which is a base repository, ignoring the rest' % (item['version'], item['release'], refined_data['query'], item['repository']))
 							latest = item['version'] + '-' + item['release']
