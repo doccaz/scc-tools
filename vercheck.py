@@ -8,6 +8,7 @@ import getopt
 import signal
 from distutils.version import LooseVersion
 import string
+import subprocess
 #import socket
 #from urllib3.connection import HTTPConnection
 import pdb
@@ -337,14 +338,39 @@ class SCCVersion():
 				print('could not find any version for package ' + package_name)
 		return
 
+	def ask_the_oracle(self, version_one, version_two):
+		# we don't know how to parse this, let's ask zypper
+		print('don''t know how to compare: %s and %s, let''s ask the oracle' % (version_one, version_two))
+		proc = subprocess.Popen(["/usr/bin/zypper", "vcmp", str(version_one), str(version_two)], env={"LANG": "C"}, stdout=subprocess.PIPE)
+		output, err = proc.communicate()
+		regex = r".*is newer than.*"
+		if output is not None:
+			matches = re.match(regex, output.decode('utf-8'))
+			if matches is not None:
+				print('the oracle says: %s is newer' % str(version_one) )
+				return True
+			else:
+				print('the oracle says: %s is older' % str(version_one) )
+				return False
+
+
 	def is_newer(self, version_one, version_two):
 		result = False
+		ver_regex=r"(.*)-(.*)"
 		try:
-			v1 = LooseVersion(str(version_one))
-			v2 = LooseVersion(str(version_two))
-			result = v1.__gt__(v2)
+			matches_v1 = re.match(ver_regex, version_one)
+			matches_v2 = re.match(ver_regex, version_two)
+
+			v1 = LooseVersion(matches_v1.group(1) + '-' + matches_v1.group(2))
+			v2 = LooseVersion(matches_v2.group(1) + '-' + matches_v2.group(2))
+		except (IndexError, AttributeError):
+			return self.ask_the_oracle(version_one, version_two)
+
+		try:
+			result = v1.__ge__(v2)
 		except TypeError as e:
-			print('error comparing: %s and %s (%s and %s)' % (version_one, version_two, str(v1.version), str(v2.version)))
+			return self.ask_the_oracle(version_one, version_two)
+
 		return result
 
 	def check_supportconfig(self, supportconfigdir):
@@ -367,11 +393,11 @@ class SCCVersion():
 		if match_os != -1 and match_arch != "unknown":
 			print('product name = ' + self.product_list[match_os]['name'] + ' (id ' + str(match_os) + ', ' + match_arch + ')')
 			selected_product_id = match_os
-			base_regex = r"(SUSE Linux Enterprise.*|Basesystem.*)"	# primary repositories for trusted updates should have this regex
+			base_regex = r"(^SUSE Linux Enterprise.*|^Basesystem.*)"	# primary repositories for trusted updates should have this regex
 			if match_suma != -1:
 				print('found ' + self.suma_product_list[match_suma]['name'] + ', will use alternate id ' + str(match_suma))
 				selected_product_id = match_suma
-				base_regex = r"SUSE Manager.*"	# primary repositories for trusted updates should have this regex
+				base_regex = r"^SUSE Manager.*"	# primary repositories for trusted updates should have this regex
 
 		else:
 			print('error while determining CPE')
@@ -416,20 +442,19 @@ class SCCVersion():
 				else:
 					latest = None
 					for item in refined_data['results']:
-						if re.match(base_regex, item['repository']) is not None and self.is_newer(item['version'] + '-' + item['release'], refined_data['supplied_version']):
+						latest = item['version'] + '-' + item['release']
+						selected_repo = item['repository']
+						if (re.match(base_regex, item['repository']) is not None) and (self.is_newer(item['version'] + '-' + item['release'], refined_data['supplied_version'])):
 							if self.verbose:
 								print('---> found version %s-%s for package %s in repository %s which is a base repository, ignoring the rest' % (item['version'], item['release'], refined_data['query'], item['repository']))
-							latest = item['version'] + '-' + item['release']
-							selected_repo = item['repository']
 							break
-					if self.verbose:
-						print('latest version for ' + refined_data['query'] + ' on product ID ' + str(refined_data['product_id']) +  ' is ' + refined_data['results'][0]['version'] + '-' + refined_data['results'][0]['release'] + ' in repository ' + refined_data['results'][0]['repository'])
-					#print('latest = ' + latest)
 					if latest is None:
 						latest = refined_data['results'][0]['version'] + '-' + refined_data['results'][0]['release']
 						selected_repo = refined_data['results'][0]['repository']
-        		
-					if latest != refined_data['supplied_version']:
+					if self.verbose:
+						print('latest version for ' + refined_data['query'] + ' on product ID ' + str(refined_data['product_id']) +  ' is ' + refined_data['results'][0]['version'] + '-' + refined_data['results'][0]['release'] + ' in repository ' + refined_data['results'][0]['repository'])
+					#print('latest = ' + latest)        		
+					if self.is_newer(latest, refined_data['supplied_version']) and (latest != refined_data['supplied_version']) :
 						self.different.append([refined_data['query'], refined_data['supplied_version'], latest, selected_repo]) 
 					else:
 						self.uptodate.append([refined_data['query'], refined_data['supplied_version']]) 
@@ -547,7 +572,7 @@ class PackageSearchEngine(Thread):
 	results = {}
 
 	def __init__(self, instance_nr, product_id, package_name, supplied_distro, supplied_version):
-		super(PackageSearchEngine, self).__init__()
+		super(PackageSearchEngine, self).__init__() 
 		urllib3.disable_warnings()
 		self.instance_nr = instance_nr
 		self.product_id = product_id
@@ -556,12 +581,20 @@ class PackageSearchEngine(Thread):
 		self.supplied_version = supplied_version
 
 	def mySort(self, e):
+     
+		v = e['version']
+		try:
+			real_v = re.match(r"(.*)\+[a-zA-Z].*\-", v).group(1)
+			v = real_v
+		except (IndexError, AttributeError):
+			pass
+
 		if e['release'][0].isalpha():
-			release = e['release'][e['release'].index('.')+1:]
+			r = e['release'][e['release'].index('.')+1:]
 		else:
-			release = e['release']
+			r = e['release']
 		#print('release %s will be considered as %s' % (e['release'], release))
-		return LooseVersion(e['version'] + '-' + release)
+		return v + '-' + r
 
 	def get_results(self):
 		return { 'product_id': self.product_id, 'query': self.package_name, 'supplied_distro': self.supplied_distro, 'supplied_version': self.supplied_version, 'results': self.results }
