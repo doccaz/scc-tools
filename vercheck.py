@@ -340,17 +340,20 @@ class SCCVersion():
 
 	def ask_the_oracle(self, version_one, version_two):
 		# we don't know how to parse this, let's ask zypper
-		print('don''t know how to compare: %s and %s, let''s ask the oracle' % (version_one, version_two))
+		if self.verbose:
+			print('don''t know how to compare: %s and %s, let''s ask the oracle' % (version_one, version_two))
 		proc = subprocess.Popen(["/usr/bin/zypper", "vcmp", str(version_one), str(version_two)], env={"LANG": "C"}, stdout=subprocess.PIPE)
 		output, err = proc.communicate()
 		regex = r".*is newer than.*"
 		if output is not None:
 			matches = re.match(regex, output.decode('utf-8'))
 			if matches is not None:
-				print('the oracle says: %s is newer' % str(version_one) )
+				if self.verbose:
+					print('the oracle says: %s is newer' % str(version_one) )
 				return True
 			else:
-				print('the oracle says: %s is older' % str(version_one) )
+				if self.verbose:
+					print('the oracle says: %s is older' % str(version_one) )
 				return False
 
 
