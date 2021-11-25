@@ -567,7 +567,7 @@ class PackageSearchEngine(Thread):
 	max_tries = 5
 
 	# server replies which are temporary errors (and can be retried)
-	retry_states = [ 502, 504 ]
+	retry_states = [ 429, 502, 504 ]
 
 	# server replies which are permanent errors (and cannot be retried)
 	error_states = [ 400, 403, 404, 422, 500 ]
