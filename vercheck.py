@@ -470,47 +470,51 @@ class SCCVersion():
 		return (self.uptodate, self.unsupported, self.notfound, self.different)
 
 	def write_reports(self):
-		print ('writing CSV reports to ' + self.outputdir + '\n')
-		try:
-			os.makedirs(self.outputdir, exist_ok=True)
-		except OSError as e:
-			print('error creating output directory at %s: %s' %(self.outputdir, str(e)))
-   
-		try:	
-			with open(self.outputdir + '/vercheck-uptodate-' + self.sc_name + '.csv', 'w') as f:
-				for p, c in self.uptodate:
-					f.write(p + ',' + c + '\n')
-				f.close()
-		except Exception as e:
-			print('Error writing file: ' + str(e))
+		if len(self.uptodate) == 0:
+			print ('no reports will be written (unsupported product?)')
 			return
-		
-		try:	
-			with open(self.outputdir + '/vercheck-notfound-' + self.sc_name + '.csv', 'w') as f:
-				for p, d, c in self.notfound:
-					f.write(p + ',' + d + ',' + c + '\n')
-				f.close()
-		except Exception as e:
-			print('Error writing file: ' + str(e))
-			return
+		else:
+			print ('writing CSV reports to ' + self.outputdir + '\n')
+			try:
+				os.makedirs(self.outputdir, exist_ok=True)
+			except OSError as e:
+				print('error creating output directory at %s: %s' %(self.outputdir, str(e)))
 
-		try:	
-			with open(self.outputdir + '/vercheck-unsupported-' + self.sc_name + '.csv', 'w') as f:
-				for p, d, c in self.unsupported:
-					f.write(p + ',' + d + ',' + c + '\n')
-				f.close()
-		except Exception as e:
-			print('Error writing file: ' + str(e))
-			return
+			try:
+				with open(self.outputdir + '/vercheck-uptodate-' + self.sc_name + '.csv', 'w') as f:
+					for p, c in self.uptodate:
+						f.write(p + ',' + c + '\n')
+					f.close()
+			except Exception as e:
+				print('Error writing file: ' + str(e))
+				return
 
-		try:	
-			with open(self.outputdir + '/vercheck-different-' + self.sc_name + '.csv', 'w') as f:
-				for p, c, l, r  in self.different:
-					f.write(p + ',' + c + ',' + l + ',' + r + '\n')
-				f.close()
-		except Exception as e:
-			print('Error writing file: ' + str(e))
-			return
+			try:
+				with open(self.outputdir + '/vercheck-notfound-' + self.sc_name + '.csv', 'w') as f:
+					for p, d, c in self.notfound:
+						f.write(p + ',' + d + ',' + c + '\n')
+					f.close()
+			except Exception as e:
+				print('Error writing file: ' + str(e))
+				return
+
+			try:
+				with open(self.outputdir + '/vercheck-unsupported-' + self.sc_name + '.csv', 'w') as f:
+					for p, d, c in self.unsupported:
+						f.write(p + ',' + d + ',' + c + '\n')
+					f.close()
+			except Exception as e:
+				print('Error writing file: ' + str(e))
+				return
+
+			try:
+				with open(self.outputdir + '/vercheck-different-' + self.sc_name + '.csv', 'w') as f:
+					for p, c, l, r  in self.different:
+						f.write(p + ',' + c + ',' + l + ',' + r + '\n')
+					f.close()
+			except Exception as e:
+				print('Error writing file: ' + str(e))
+				return
    
 		field_size = 30
 		if self.show_uptodate:
