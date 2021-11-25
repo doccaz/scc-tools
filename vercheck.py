@@ -378,11 +378,9 @@ class SCCVersion():
 
 	def check_supportconfig(self, supportconfigdir):
 
-		global sc_name
-
-		sc_name = supportconfigdir.split(os.sep)[-1]
-		if sc_name == '.':
-			sc_name = os.getcwd().split(os.sep)[-1]
+		self.sc_name = supportconfigdir.rstrip(os.sep).split(os.sep)[-1]
+		if self.sc_name == '.':
+			self.sc_name = os.getcwd().split(os.sep)[-1]
 
 		print('Analyzing supportconfig directory: ' + supportconfigdir)
 		
@@ -479,7 +477,7 @@ class SCCVersion():
 			print('error creating output directory at %s: %s' %(self.outputdir, str(e)))
    
 		try:	
-			with open(self.outputdir + '/vercheck-uptodate-' + sc_name + '.csv', 'w') as f:
+			with open(self.outputdir + '/vercheck-uptodate-' + self.sc_name + '.csv', 'w') as f:
 				for p, c in self.uptodate:
 					f.write(p + ',' + c + '\n')
 				f.close()
@@ -488,7 +486,7 @@ class SCCVersion():
 			return
 		
 		try:	
-			with open(self.outputdir + '/vercheck-notfound-' + sc_name + '.csv', 'w') as f:
+			with open(self.outputdir + '/vercheck-notfound-' + self.sc_name + '.csv', 'w') as f:
 				for p, d, c in self.notfound:
 					f.write(p + ',' + d + ',' + c + '\n')
 				f.close()
@@ -497,7 +495,7 @@ class SCCVersion():
 			return
 
 		try:	
-			with open(self.outputdir + '/vercheck-unsupported-' + sc_name + '.csv', 'w') as f:
+			with open(self.outputdir + '/vercheck-unsupported-' + self.sc_name + '.csv', 'w') as f:
 				for p, d, c in self.unsupported:
 					f.write(p + ',' + d + ',' + c + '\n')
 				f.close()
@@ -506,7 +504,7 @@ class SCCVersion():
 			return
 
 		try:	
-			with open(self.outputdir + '/vercheck-different-' + sc_name + '.csv', 'w') as f:
+			with open(self.outputdir + '/vercheck-different-' + self.sc_name + '.csv', 'w') as f:
 				for p, c, l, r  in self.different:
 					f.write(p + ',' + c + ',' + l + ',' + r + '\n')
 				f.close()
