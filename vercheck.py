@@ -611,7 +611,7 @@ class PackageSearchEngine(Thread):
 		return_data = []
 		while not valid_response and tries < self.max_tries:
 			try:
-				r = self.http.request('GET', 'https://scc.suse.com/api/package_search/packages?product_id=' + str(self.product_id) + '&query=' + urllib.parse.quote(self.package_name), headers={'Accept-Encoding': 'gzip, deflate'})
+				r = self.http.request('GET', 'https://scc.suse.com/api/package_search/packages?product_id=' + str(self.product_id) + '&query=' + urllib.parse.quote(self.package_name), headers={'Accept-Encoding': 'gzip, deflate', 'Connection':'close'})
 			except Exception as e:
 				print('Error while connecting: ' + str(e))
 				exit(1)
