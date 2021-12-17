@@ -48,7 +48,7 @@ class SCCVersion():
 		1876: { 'name': 'SUSE Linux Enterprise Server 12 SP5 ppc64le', 'arch': 'ppc64le', 'identifier': 'cpe:/o:suse:sles:12:sp5' },
 		1877: { 'name': 'SUSE Linux Enterprise Server 12 SP5 s390x', 'arch': 's390x', 'identifier': 'cpe:/o:suse:sles:12:sp5' },
 		1878: { 'name': 'SUSE Linux Enterprise Server 12 SP5 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:suse:sles:12:sp5' },
-		1319: { 'name': 'SUSE Linux Enterprise Server for SAP Applications 12 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:suse:sles:12' },
+		1319: { 'name': 'SUSE Linux Enterprise Server for SAP Applications 12 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:suse:sles_sap:12' },
 		1346: { 'name': 'SUSE Linux Enterprise Server for SAP Applications 12 SP1 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:suse:sles_sap:12:sp1' },
 		1414: { 'name': 'SUSE Linux Enterprise Server for SAP Applications 12 SP2 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:suse:sles_sap:12:sp2' },
 		1426: { 'name': 'SUSE Linux Enterprise Server for SAP Applications 12 SP3 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:suse:sles_sap:12:sp3' },
@@ -172,15 +172,38 @@ class SCCVersion():
      
 	def find_cpe(self, directory_name, architecture):
 		regex_os= r"CPE_NAME=\"(.*)\""
+		regex_sap=r"SLES_SAP-release-([0-9]+)-|SLES_SAP-release-([0-9]+)\.([0-9]+)"
+		regex_sap_cpe=r".*sles_sap\:([0-9]+)$|.*sles_sap\:([0-9]+)\:[a-z]+?([0-9]+)"
 		
 		try:
-			f = open(directory_name + '/basic-environment.txt', 'r')
-			text = f.read()
-			f.close()
+			with open(directory_name + '/basic-environment.txt', 'r') as f:
+				text = f.read()
+				f.close()
+
+			with open(directory_name + '/rpm.txt', 'r') as f:
+				text_rpms = f.read()
+				f.close()
+
 			matches_os = re.search(regex_os, text)
+			matches_sap = re.search(regex_sap, text_rpms)
 			for p in self.product_list:
-				if matches_os.group(1) == self.product_list[p]['identifier'] and architecture == self.product_list[p]['arch']:
+				# first, we try matching the SLES_SAP-release RPM as CPE strings -- according to TID 7023490, the sles_sap string cannot always be trusted...
+				if matches_sap is not None:
+					matches_sap_cpe = re.search(regex_sap_cpe, self.product_list[p]['identifier'])
+					# we match the CPE in the product table (just for our control, remember the TID) and the architecture
+					if matches_sap_cpe is not None and architecture == self.product_list[p]['arch']:
+						# the string version does not have a service pack
+						if matches_sap.group(1) is not None and matches_sap.group(1) ==  matches_sap_cpe.group(1):
+							return p
+
+						# the string version contains a service pack (matches are on groups 2 and 3)
+						if matches_sap.group(2) is not None and matches_sap.group(2) ==  matches_sap_cpe.group(2) and matches_sap.group(3) ==  matches_sap_cpe.group(3):
+							return p
+
+				# if a SLES_SAP-release package is not found, fall back to checking the CPE
+				elif matches_os.group(1) == self.product_list[p]['identifier'] and architecture == self.product_list[p]['arch']:
 					return p
+
 		except Exception as e:
 			print ('error: ' + str(e))
 		return -1
