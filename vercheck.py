@@ -622,7 +622,7 @@ class PackageSearchEngine(Thread):
 		else:
 			r = e['release']
 		#print('release %s will be considered as %s' % (e['release'], release))
-		return v + '-' + r
+		return LooseVersion(v + '-' + r)
 
 	def get_results(self):
 		return { 'product_id': self.product_id, 'query': self.package_name, 'supplied_distro': self.supplied_distro, 'supplied_version': self.supplied_version, 'results': self.results }
