@@ -2,6 +2,7 @@
 import re
 import sys, os, time
 from threading import Thread, Lock, active_count
+from contextlib import contextmanager
 from platformdirs import user_cache_dir
 import urllib3, urllib
 import json
@@ -434,7 +435,7 @@ class SCCVersion():
  
 	def __init__(self):
 		self.cm = CacheManager()
-  
+         
 	def set_verbose(self, verbose):
 		self.verbose = verbose
 
@@ -790,7 +791,7 @@ class SCCVersion():
 					
 					t.processed = True
 					to_process = len([t for t in self.threads if t.processed == False])
-					# time.sleep(0.1)
+					#time.sleep(0.1)
 				except IndexError:
 					#print('[thread ' + str(thread_number) + '] could not find any version for package ' + refined_data['query'])
 					pass
@@ -1163,16 +1164,24 @@ class CacheManager(metaclass=Singleton):
 		# print(f'my cache has {len(self.cache_data)} entries')
 		# weakref.finalize(self, self.write_cache)
   
+	@contextmanager
+	def acquire_timeout(self, lock, timeout):
+		result = lock.acquire(timeout=timeout)
+		yield result
+		if result:
+			lock.release()
+   
 	# loads the JSON cache if available 
 	def load_cache(self):
 		try:
-			with self._lock:
-				if not self.initialized:
-					# if the default directory is writeable, use it
-					with open(self.active_cache_file, "r") as f:
-						self.cache_data = json.loads(f.read())
-					self.initialized = True
-					print(f'loaded {len(self.cache_data)} items from cache ({self.active_cache_file})')      
+			with self.acquire_timeout(self._lock, 2) as acquired:
+				if acquired:
+					if not self.initialized:
+						# if the default directory is writeable, use it
+						with open(self.active_cache_file, "r") as f:
+							self.cache_data = json.loads(f.read())
+						self.initialized = True
+						print(f'loaded {len(self.cache_data)} items from cache ({self.active_cache_file})')
 		except IOError:
 			#print(f'Error reading the package cache from {self.active_cache_file} (non-fatal)')
 			return False
@@ -1185,10 +1194,14 @@ class CacheManager(metaclass=Singleton):
     # saves the package data for later use
 	def write_cache(self):
 		try:
-			with self._lock:
-				print(f'writing {len(self.cache_data)} items to cache at {self.active_cache_file}')
-				with open(self.active_cache_file, "w+") as f:
-					f.write(json.dumps(self.cache_data, default=self.dt_parser))
+			with self.acquire_timeout(self._lock, 2) as acquired:
+				if acquired:
+					print(f'writing {len(self.cache_data)} items to cache at {self.active_cache_file}')
+					with open(self.active_cache_file, "w+") as f:
+						f.write(json.dumps(self.cache_data, default=self.dt_parser))
+				else:
+					print('write_cache: could not acquire lock!')
+					exit(1)
 		except IOError:
 			print(
                 'Error saving package cache at ' + self.active_cache_file + ' (non-fatal)')
@@ -1219,26 +1232,34 @@ class CacheManager(metaclass=Singleton):
 	# removes a record from the cache
 	def remove_record(self, record):
 		print(f'removing record from cache: {record}')
-		with self._lock:
-			self.cache_data.remove(record)
+		with self.acquire_timeout(self._lock, 2) as acquired:
+			if acquired:
+				self.cache_data.remove(record)
+			else:
+				print('remove_record: could not acquire lock!')
+				exit(1)
 		# print(f'items in cache: {len(self.cache_data)}')
   
 	# adds a new record to the cache
 	def add_record(self, record):
 		# print(f'appending record to cache: {record}')
-		with self._lock:
-			found=False
-			for item in self.cache_data:
-				if record['id'] == item['id'] and record['name'] == item['name']:
-					found = True
-					break
-			if (found is False):
-				#print(f"cache: added record for {record['id']}")
-				self.cache_data.append(record)
-			#else:
-			#	print('cache: rejecting duplicate item')
-		# print(f'items in cache: {len(self.cache_data)}')
-
+		with self.acquire_timeout(self._lock, 2) as acquired:
+			if acquired:
+				found=False
+				for item in self.cache_data:
+					if record['id'] == item['id'] and record['name'] == item['name']:
+						found = True
+						break
+				if (found is False):
+					#print(f"cache: added record for {record['id']}")
+					self.cache_data.append(record)
+				#else:
+				#	print('cache: rejecting duplicate item')
+			# print(f'items in cache: {len(self.cache_data)}')
+			else:
+				print('write_cache: could not acquire lock!')
+				exit(1)
+    
 	def get_max_age(self):
 		return self.max_age_days
 
