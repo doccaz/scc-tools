@@ -1170,15 +1170,16 @@ class CacheManager(metaclass=Singleton):
 	
 		self.load_cache()
 		# print(f'my cache has {len(self.cache_data)} entries')
-		weakref.finalize(self, self.write_cache)
+		# weakref.finalize(self, self.write_cache)
   
 	@contextmanager
 	def acquire_timeout(self, timeout):
 		result = self._lock.acquire(timeout=timeout)
+		time.sleep(0.001)
 		# print(f'lock result = {result}')
 		if result:
-			yield result
 			self._lock.release()
+		yield result
 		# print(f'lock status: {lock.locked()}')
 
 	# loads the JSON cache if available 
@@ -1242,7 +1243,7 @@ class CacheManager(metaclass=Singleton):
 	# removes a record from the cache
 	def remove_record(self, record):
 		print(f'removing record from cache: {record}')
-		with self.acquire_timeout(2) as acquired:
+		with self.acquire_timeout(5) as acquired:
 			if acquired:
 				self.cache_data.remove(record)
 			else:
@@ -1253,7 +1254,7 @@ class CacheManager(metaclass=Singleton):
 	# adds a new record to the cache
 	def add_record(self, record):
 		# print(f'appending record to cache: {record}')
-		with self.acquire_timeout(2) as acquired:
+		with self.acquire_timeout(5) as acquired:
 			if acquired:
 				found=False
 				for item in self.cache_data:
