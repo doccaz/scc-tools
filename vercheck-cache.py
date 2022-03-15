@@ -1170,7 +1170,7 @@ class CacheManager(metaclass=Singleton):
 	
 		self.load_cache()
 		# print(f'my cache has {len(self.cache_data)} entries')
-		# weakref.finalize(self, self.write_cache)
+		weakref.finalize(self, self.write_cache)
   
 	@contextmanager
 	def acquire_timeout(self, timeout):
