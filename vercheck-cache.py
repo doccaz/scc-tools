@@ -616,7 +616,11 @@ class SCCVersion():
 		while len(self.threads) > 0:
 			for thread_number, t in enumerate(self.threads):
 				#if t.isAlive():
-					t.join()
+					t.join(timeout=5)
+					if t.isAlive():
+						print(f'thread {t.name} is not ready yet, skipping')
+						self.threads.append(t)
+						continue
 					refined_data = t.get_results()
 
 				# for thread_number in range(instance_nr):
@@ -754,7 +758,11 @@ class SCCVersion():
 			for t in [t for t in self.threads if t.done and t.processed == False]:
 				if self.verbose:
 					print(f'joining thread {t.name} (waiting: {to_process})...')
-				t.join()
+				t.join(timeout=5)
+				if t.isAlive():
+					print(f'thread {t.name} is not ready yet, skipping')
+					self.threads.append(t)
+					continue
 				refined_data = t.get_results()
 				#print('refined data = ' + str(refined_data))
 				try:
@@ -791,7 +799,7 @@ class SCCVersion():
 					
 					t.processed = True
 					to_process = len([t for t in self.threads if t.processed == False])
-					#time.sleep(0.1)
+					time.sleep(0.0001)
 				except IndexError:
 					#print('[thread ' + str(thread_number) + '] could not find any version for package ' + refined_data['query'])
 					pass
@@ -1162,19 +1170,21 @@ class CacheManager(metaclass=Singleton):
 	
 		self.load_cache()
 		# print(f'my cache has {len(self.cache_data)} entries')
-		# weakref.finalize(self, self.write_cache)
+		weakref.finalize(self, self.write_cache)
   
 	@contextmanager
-	def acquire_timeout(self, lock, timeout):
-		result = lock.acquire(timeout=timeout)
-		yield result
+	def acquire_timeout(self, timeout):
+		result = self._lock.acquire(timeout=timeout)
+		# print(f'lock result = {result}')
 		if result:
-			lock.release()
-   
+			yield result
+			self._lock.release()
+		# print(f'lock status: {lock.locked()}')
+
 	# loads the JSON cache if available 
 	def load_cache(self):
 		try:
-			with self.acquire_timeout(self._lock, 2) as acquired:
+			with self.acquire_timeout(2) as acquired:
 				if acquired:
 					if not self.initialized:
 						# if the default directory is writeable, use it
@@ -1194,7 +1204,7 @@ class CacheManager(metaclass=Singleton):
     # saves the package data for later use
 	def write_cache(self):
 		try:
-			with self.acquire_timeout(self._lock, 2) as acquired:
+			with self.acquire_timeout(2) as acquired:
 				if acquired:
 					print(f'writing {len(self.cache_data)} items to cache at {self.active_cache_file}')
 					with open(self.active_cache_file, "w+") as f:
@@ -1232,7 +1242,7 @@ class CacheManager(metaclass=Singleton):
 	# removes a record from the cache
 	def remove_record(self, record):
 		print(f'removing record from cache: {record}')
-		with self.acquire_timeout(self._lock, 2) as acquired:
+		with self.acquire_timeout(2) as acquired:
 			if acquired:
 				self.cache_data.remove(record)
 			else:
@@ -1243,7 +1253,7 @@ class CacheManager(metaclass=Singleton):
 	# adds a new record to the cache
 	def add_record(self, record):
 		# print(f'appending record to cache: {record}')
-		with self.acquire_timeout(self._lock, 2) as acquired:
+		with self.acquire_timeout(2) as acquired:
 			if acquired:
 				found=False
 				for item in self.cache_data:
@@ -1251,14 +1261,14 @@ class CacheManager(metaclass=Singleton):
 						found = True
 						break
 				if (found is False):
-					#print(f"cache: added record for {record['id']}")
+					print(f"cache: added record for {record['id']}")
 					self.cache_data.append(record)
 				#else:
 				#	print('cache: rejecting duplicate item')
-			# print(f'items in cache: {len(self.cache_data)}')
 			else:
-				print('write_cache: could not acquire lock!')
+				print('add_record: could not acquire lock!')
 				exit(1)
+		# print(f'items in cache: {len(self.cache_data)}')
     
 	def get_max_age(self):
 		return self.max_age_days
