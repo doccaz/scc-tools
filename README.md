@@ -22,7 +22,9 @@ I also tried to use all resources that do NOT require authentication, inspired b
 This is an experimental version of the main vercheck script that has an internal cache. This was made in order to sidestep current rate-limiting issues on the SCC API servers (issue #22).
 
 The main differences are:
+
 1) a JSON file (scc_data.json) is created/updated to hold cache entries, either in /var/cache/scc-tools or ~/.cache/scc-tools. The directory is selected based on whether it can write to each location, in order of preference.
+
 2) the cache currently holds entries for 5 days. This guarantees that fresh information can be retrieved in a reasonable timeframe if necessary.
 Here's an example of an entry being dropped and immediately being queued for a refresh:
 ```
@@ -31,11 +33,13 @@ removing record from cache: {'id': 21851832, 'name': 'zypper', 'arch': 'x86_64',
 searching for zypper for product ID 1939 in SCC
 ```
 3) this version contains an internal table correlating each product to modules (taken from RMT). This is necessary in order to maintain cache consistency, as sometimes a suitable updated package resides in a different module repository, and we need to know what was the original product ID in order to return the correct cache entry.
+
 4) there is an additional command-line option:
 ```
 -f|--force-refresh              Ignore cached data and retrieve latest data from SCC
 ```
 This ignores the cache and goes straight to SCC for the latest data (the results are added to the cache at the end for later use though).
+
 5) this version is even more heavily multi-threaded than the original one, and as such it has a way more complex data locking logic.
 
 *IMPORTANT*: as we discovered through testing, running multiple parallel copies of this version may "lose" some of the recently refreshed cache entries. This limitation is by design. What happens is that in every session I read the cached entries to memory, then write it all at the end. Everything is changed in-memory. So, whoever runs last "wins". This is to avoid thousands of small disk writes, and possibly being called a "disk killer" :-)
