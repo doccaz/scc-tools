@@ -3,7 +3,6 @@ import re
 import sys, os, time
 from threading import Thread, Lock, active_count
 from contextlib import contextmanager
-from platformdirs import user_cache_dir
 import urllib3, urllib
 import json
 import getopt
