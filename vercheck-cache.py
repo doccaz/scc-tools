@@ -632,7 +632,7 @@ class SCCVersion():
 									print('[thread ' +  str(thread_number) + ' ] version ' + item['version'] + '-' + item['release'] + ' is available on repository [' + item['repository'] + ']')
 					except IndexError:
 						print('could not find any version for package ' + package_name)
-
+			time.sleep(.1)
 		return
 
 	def search_package(self, product_id, package_name):
@@ -758,10 +758,14 @@ class SCCVersion():
 				if self.verbose:
 					print(f'joining thread {t.name} (waiting: {to_process})...')
 				t.join(timeout=5)
+				time.sleep(.1)
 				if t.isAlive():
 					print(f'thread {t.name} is not ready yet, skipping')
 					self.threads.append(t)
 					continue
+				# else:
+				#	print(f'thread {t.name} is dead')
+     
 				refined_data = t.get_results()
 				#print('refined data = ' + str(refined_data))
 				try:
@@ -798,14 +802,16 @@ class SCCVersion():
 					
 					t.processed = True
 					to_process = len([t for t in self.threads if t.processed == False])
-					time.sleep(0.0001)
+					time.sleep(.1)
 				except IndexError:
 					#print('[thread ' + str(thread_number) + '] could not find any version for package ' + refined_data['query'])
 					pass
 				except KeyError as e:
 					print(f'Cannot find field: {e}')
 					pass
-			#	print(f'thread {t.name} is not ready yet, skipping')
+				print(f'thread {t.name} is done')
+				time.sleep(.1)
+			time.sleep(.1)
 
 		sys.stdout.write('\nDone.\n')
 		sys.stdout.flush()
@@ -902,7 +908,7 @@ class PackageSearchEngine(Thread):
 	max_threads = 20
 
 	# single instance for urllib3 pool
-	http = urllib3.PoolManager(maxsize=max_threads)
+	http = urllib3.PoolManager(maxsize=5)
   
 	# set default socket options
 	# HTTPConnection.default_socket_options += [ (socket.SOL_SOCKET, socket.SO_REUSEADDR, 1) ]
@@ -1241,10 +1247,12 @@ class CacheManager(metaclass=Singleton):
  
 	# removes a record from the cache
 	def remove_record(self, record):
-		print(f'removing record from cache: {record}')
 		with self.acquire_timeout(5) as acquired:
 			if acquired:
-				self.cache_data.remove(record)
+				for item in self.cache_data:
+					if record['id'] ==  item['id']:
+						print(f'removing record from cache: {record}')
+						self.cache_data.remove(item)
 			else:
 				print('remove_record: could not acquire lock!')
 				exit(1)
