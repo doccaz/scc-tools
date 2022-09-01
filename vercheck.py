@@ -69,6 +69,7 @@ class SCCVersion():
 		2136: { 'name': 'SUSE Linux Enterprise Server for SAP Applications 15 SP3 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:suse:sles_sap:15:sp3' },
 		2293: { 'name': 'SUSE Linux Enterprise Server for SAP Applications 15 SP4 ppc64le', 'arch': 'ppc64le', 'identifier': 'cpe:/o:suse:sles_sap:15:sp4' },
 		2294: { 'name': 'SUSE Linux Enterprise Server for SAP Applications 15 SP4 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:suse:sles_sap:15:sp4' },
+		2467: { 'name': 'SUSE Linux Enterprise Server for SAP Applications 15 SP5 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:suse:sles_sap:15:sp5' },
 		1575: { 'name': 'SUSE Linux Enterprise Server 15 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:suse:sles:15' },
 		1584: { 'name': 'SUSE Linux Enterprise Server 15 s390x', 'arch': 's390x', 'identifier': 'cpe:/o:suse:sles:15' },
 		1585: { 'name': 'SUSE Linux Enterprise Server 15 ppc64le', 'arch': 'ppc64le', 'identifier': 'cpe:/o:suse:sles:15' },
@@ -94,12 +95,23 @@ class SCCVersion():
 		2291: { 'name': 'SUSE Linux Enterprise Server 15 SP4 s390x', 'arch': 's390x', 'identifier': 'cpe:/o:suse:sles:15:sp4' },
   		2292: { 'name': 'SUSE Linux Enterprise Server 15 SP4 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:suse:sles:15:sp4' },
 		2295: { 'name': 'SUSE Linux Enterprise Desktop 15 SP4 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:suse:sled:15:sp4' },
+		2462: { 'name': 'SUSE Linux Enterprise Server 15 SP5 aarch64', 'arch': 'aarch64', 'identifier': 'cpe:/o:suse:sles:15:sp5' },
+		2463: { 'name': 'SUSE Linux Enterprise Server 15 SP5 ppc64le', 'arch': 'ppc64le', 'identifier': 'cpe:/o:suse:sles:15:sp5' },
+		2464: { 'name': 'SUSE Linux Enterprise Server 15 SP5 s390x', 'arch': 's390x', 'identifier': 'cpe:/o:suse:sles:15:sp5' },
+		2465: { 'name': 'SUSE Linux Enterprise Server 15 SP5 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:suse:sles:15:sp5' },
+		2468: { 'name': 'SUSE Linux Enterprise Desktop 15 SP5 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:suse:sled:15:sp5' },
 		1929: { 'name': 'openSUSE Leap 15.1 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:opensuse:leap:15.1' },
 		2001: { 'name': 'openSUSE Leap 15.2 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:opensuse:leap:15.2' },
 		2233: { 'name': 'openSUSE Leap 15.3 aarch64', 'arch': 'aarch64', 'identifier': 'cpe:/o:opensuse:leap:15.3' },
 		2234: { 'name': 'openSUSE Leap 15.3 ppc64le', 'arch': 'ppc64le', 'identifier': 'cpe:/o:opensuse:leap:15.3' },
 		2235: { 'name': 'openSUSE Leap 15.3 s390x', 'arch': 's390x', 'identifier': 'cpe:/o:opensuse:leap:15.3' },
 		2236: { 'name': 'openSUSE Leap 15.3 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:opensuse:leap:15.3' },
+		2406: { 'name': 'openSUSE Leap 15.4 aarch64', 'arch': 'aarch64', 'identifier': 'cpe:/o:opensuse:leap:15.4' },
+		2407: { 'name': 'openSUSE Leap 15.4 ppc64le', 'arch': 'ppc64le', 'identifier': 'cpe:/o:opensuse:leap:15.4' },
+		2408: { 'name': 'openSUSE Leap 15.4 s390x', 'arch': 's390x', 'identifier': 'cpe:/o:opensuse:leap:15.4' },
+		2409: { 'name': 'openSUSE Leap 15.4 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:opensuse:leap:15.4' },
+		2520: { 'name': 'openSUSE Leap Micro 5.2 aarch64', 'arch': 'aarch64', 'identifier': 'cpe:/o:opensuse:leap-micro:5.2' },
+		2521: { 'name': 'openSUSE Leap Micro 5.2 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:opensuse:leap-micro:5.2' },
 	}
 
 	# to get the list of product IDs:
@@ -109,6 +121,7 @@ class SCCVersion():
 		1899: { 'name': 'SUSE Manager Server 4.0', 'identifier': '4.0' },
 		2012: { 'name': 'SUSE Manager Server 4.1', 'identifier': '4.1' },
 		2222: { 'name': 'SUSE Manager Server 4.2', 'identifier': '4.2' },
+		2378: { 'name': 'SUSE Manager Server 4.3', 'identifier': '4.3' },
 	}
  
 	# result lists
