@@ -472,7 +472,7 @@ class SCCVersion():
 	max_threads = 25
 
 	# time to wait before starting each chunk of threads
-	wait_time = 0.5
+	wait_time = 10
 
 	# override architecture
 	arch = None
@@ -674,9 +674,9 @@ class SCCVersion():
 		# fetch results for all threads
 		while len(self.threads) > 0:
 			for thread_number, t in enumerate(self.threads):
-				#if t.isAlive():
+				#if t.is_alive():
 					t.join(timeout=5)
-					if t.isAlive():
+					if t.is_alive():
 						print(f'thread {t.name} is not ready yet, skipping')
 						self.threads.append(t)
 						continue
@@ -819,7 +819,7 @@ class SCCVersion():
 					print(f'joining thread {t.name} (waiting: {to_process})...')
 				t.join(timeout=5)
 				time.sleep(.1)
-				if t.isAlive():
+				if t.is_alive():
 					print(f'thread {t.name} is not ready yet, skipping')
 					self.threads.append(t)
 					continue
@@ -1079,7 +1079,7 @@ class PackageSearchEngine(Thread):
 					break
 				elif r.status in self.retry_states:
 					print('thread %d got non-fatal reply (%d) from server, trying again in 2 seconds ' % (self.instance_nr, r.status))
-					time.sleep(2)
+					time.sleep(5)
 					tries = tries + 1
 					continue
 				else:
