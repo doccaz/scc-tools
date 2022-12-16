@@ -1078,7 +1078,7 @@ class PackageSearchEngine(Thread):
 					print('thread %d got a fatal error (%d). Results will be incomplete!\nPlease contact the service administrators or try again later.' % (self.instance_nr, r.status))
 					break
 				elif r.status in self.retry_states:
-					print('thread %d got non-fatal reply (%d) from server, trying again in 2 seconds ' % (self.instance_nr, r.status))
+					print('thread %d got non-fatal reply (%d) from server, trying again in 5 seconds ' % (self.instance_nr, r.status))
 					time.sleep(5)
 					tries = tries + 1
 					continue
