@@ -143,9 +143,9 @@ different:243 packages
 
 This option analyzes a previously extracted supportconfig report. It will find the installed RPMs in the report, and run
 searches on ALL packages in order to find which ones are up-to-date, have older versions, or are not found in the official
-repositories. Packages that are from unsupported vendors also get their own report.
+repositories. Packages that are from unsupported vendors also get their own report. Packages that are orphans (as in, packages that belong to another version of the OS and were left installed) also has a separate report.
 
-It generates 4 CSV reports: vercheck-uptodate-[directory name].csv, vercheck-different-[directory name].csv, vercheck-notfound-[directory name].csv and vercheck-unsupported-[directory name].csv, respectively.
+It generates 5 CSV reports: vercheck-uptodate-[directory name].csv, vercheck-different-[directory name].csv, vercheck-notfound-[directory name].csv, vercheck-unsupported-[directory name].csv, and vercheck-suseorphans-[directory name].csv, respectively.
 
 An output directory can be specified by adding the "-o" (or --outputdir) parameter before the supportconfig directory:
 ```
