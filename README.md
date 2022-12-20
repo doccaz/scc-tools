@@ -11,7 +11,7 @@ This tool searches for the latest version of a package, for one specific product
 
 Usage: 
 ```
-# Usage: vercheck.py [-l|--list-products] -p|--product=product id -n|--name <package name> [-s|--short] [-v|--verbose]  [-1|--show-unknown] [-2|--show-differences] [-3|--show-uptodate] [-4|--show-unsupported] [-o|--outputdir] [-d|--supportconfig]
+# Usage: vercheck.py [-l|--list-products] -p|--product=product id -n|--name <package name> [-s|--short] [-v|--verbose]  [-1|--show-unknown] [-2|--show-differences] [-3|--show-uptodate] [-4|--show-unsupported] [-5|--show-suseorphans] [-o|--outputdir] [-d|--supportconfig]
 ```
 
 It uses compression, and a single urllib3 pool instance, to minimize the impact on the public server as much as possible. In order to speed things up, I open multiple threads and consume the RPM list slowly.
@@ -19,7 +19,7 @@ I also tried to use all resources that do NOT require authentication, inspired b
 
 ## vercheck-cache
 
-This is an experimental version of the main vercheck script that has an internal cache. This was made in order to sidestep current rate-limiting issues on the SCC API servers (issue #22).
+This is an currently supported version of the main vercheck script that has an internal cache. This was made in order to sidestep current rate-limiting issues on the SCC API servers (issue #22).
 
 The main differences are:
 
