@@ -14,6 +14,7 @@ from datetime import datetime
 #from urllib3.connection import HTTPConnection
 import pdb
 import weakref
+import warnings
 
 ### main class that deals with command lines, reports and everything else
 class SCCVersion():
@@ -443,7 +444,6 @@ class SCCVersion():
 	# to get the list of product IDs:
 	# rmt-cli products list --name "SUSE Manager Server" --all
 	suma_product_list = {
-
 		1899: { 'name': 'SUSE Manager Server 4.0', 'identifier': '4.0' },
 		2012: { 'name': 'SUSE Manager Server 4.1', 'identifier': '4.1' },
 		2222: { 'name': 'SUSE Manager Server 4.2', 'identifier': '4.2' },
@@ -455,12 +455,14 @@ class SCCVersion():
 	notfound = []
 	different = []
 	unsupported = []
+	suseorphans = []
  
 	# report flags
 	show_unknown = False
 	show_diff = False
 	show_uptodate = False
 	show_unsupported = False
+	show_suseorphans = False
 
 	# verbose messages
 	verbose = False
@@ -493,6 +495,8 @@ class SCCVersion():
 	threads = []
  
 	def __init__(self):
+		# ignore DeprecationWarnings for now to avoid polluting the output
+		warnings.filterwarnings("ignore", category=DeprecationWarning)
 		self.cm = CacheManager()
          
 	def set_verbose(self, verbose):
@@ -638,7 +642,7 @@ class SCCVersion():
 		return
 
 	def usage(self):
-		print('Usage: ' + sys.argv[0] + ' [-l|--list-products] -p|--product product id -n|--name <package name> [-s|--short] [-v|--verbose] [-1|--show-unknown] [-2|--show-differences] [-3|--show-uptodate] [-4|--show-unsupported] [-o|--outputdir] [-d|--supportconfig] [-f|--force-refresh]')
+		print('Usage: ' + sys.argv[0] + ' [-l|--list-products] -p|--product product id -n|--name <package name> [-s|--short] [-v|--verbose] [-1|--show-unknown] [-2|--show-differences] [-3|--show-uptodate] [-4|--show-unsupported] [-5|--show-suseorphans] [-o|--outputdir] [-d|--supportconfig] [-f|--force-refresh]')
 		return
 
 	def show_help(self):
@@ -653,6 +657,7 @@ class SCCVersion():
 		print('-2|--show-differences)\t\tshows packages that have updates available as they are found.\n')
 		print('-3|--show-uptodate)\t\tshows packages that are on par with the updated versions as they are found.\n')
 		print('-4|--show-unsupported)\t\tshows packages that have a vendor that is different from the system it was collected from.\n')
+		print('-5|--show-suseorphans)\t\tshows packages that are from SUSE, but are now orphans (e.g. from different OS/product versions).\n')
 		print('-o|--outputdir)\t\tspecify an output directory for the reports. Default: current directory.\n')
 		print('-d|--supportconfig\t\tAnalyzes a supportconfig directory and generates CSV reports for up-to-date, not found and different packages.\n')
 		print('-a|--arch\t\tSupply an architecture for the supportconfig analysis.')
@@ -818,7 +823,7 @@ class SCCVersion():
 				if self.verbose:
 					print(f'joining thread {t.name} (waiting: {to_process})...')
 				t.join(timeout=5)
-				time.sleep(.1)
+				# time.sleep(.001)
 				if t.is_alive():
 					print(f'thread {t.name} is not ready yet, skipping')
 					self.threads.append(t)
@@ -862,7 +867,7 @@ class SCCVersion():
 					
 					t.processed = True
 					to_process = len([t for t in self.threads if t.processed == False])
-					time.sleep(.1)
+					time.sleep(.001)
 				except IndexError:
 					#print('[thread ' + str(thread_number) + '] could not find any version for package ' + refined_data['query'])
 					pass
@@ -871,12 +876,23 @@ class SCCVersion():
 					pass
 				print(f'thread {t.name} is done')
 				time.sleep(.1)
+				sys.stdout.flush()
 			time.sleep(.1)
+
+
+		# check if there are SUSE orphan packages in notfound
+		self.notfound.sort()
+		for package, distribution, version in self.notfound.copy():
+			if 'SUSE Linux Enterprise' in distribution:
+				if self.verbose:
+					print(f'**** moving SUSE orphan package to appropriate list: {package}-{version} ({distribution})')
+				self.notfound.remove([package, distribution, version])
+				self.suseorphans.append([package, distribution, version])
 
 		sys.stdout.write('\nDone.\n')
 		sys.stdout.flush()
 		
-		return (self.uptodate, self.unsupported, self.notfound, self.different)
+		return (self.uptodate, self.unsupported, self.notfound, self.different, self.suseorphans)
 
 	def write_reports(self):
 		if len(self.uptodate) == 0:
@@ -925,6 +941,15 @@ class SCCVersion():
 				print('Error writing file: ' + str(e))
 				return
    
+			try:
+				with open(os.path.join(self.outputdir, 'vercheck-suseorphans-' + self.sc_name + '.csv'), 'w') as f:
+					for p, d, c in self.suseorphans:
+						f.write(p + ',' + d + ',' + c + '\n')
+					f.close()
+			except Exception as e:
+				print('Error writing file: ' + str(e))
+				return
+
 		field_size = 30
 		if self.show_uptodate:
 			print('\n\t\t---  Up-to-date packages ---\n')
@@ -958,6 +983,13 @@ class SCCVersion():
 					print(str.ljust(p, field_size) + '\t' + str.ljust(c, field_size) + '\t' + str.ljust(l, field_size))
 			print('\nTotal: ' + str(len(self.notfound)) + ' packages')
 
+		if self.show_suseorphans:
+			print('\n\t\t--- SUSE orphan packages ---\n')
+			print(str.ljust('Name', field_size) + '\t' + str.ljust('Vendor', field_size) + '\t' + str.ljust('Current Version', field_size))
+			print('=' * 80)
+			for p, c, l  in self.suseorphans:
+					print(str.ljust(p, field_size) + '\t' + str.ljust(c, field_size) + '\t' + str.ljust(l, field_size))
+			print('\nTotal: ' + str(len(self.suseorphans)) + ' packages')
 		return
 
 
@@ -1126,7 +1158,7 @@ def main():
 	signal.signal(signal.SIGINT, sv.cleanup)
 
 	try:
-		opts,args = getopt.getopt(sys.argv[1:],  "hp:n:lsvt1234a:d:o:f", [ "help", "product=", "name=", "list-products", "short", "verbose", "test", "show-unknown", "show-differences", "show-uptodate", "show-unsupported", "arch=", "supportconfig=", "outputdir=", "force-refresh" ])
+		opts,args = getopt.getopt(sys.argv[1:],  "hp:n:lsvt12345a:d:o:f", [ "help", "product=", "name=", "list-products", "short", "verbose", "test", "show-unknown", "show-differences", "show-uptodate", "show-unsupported", "show-suseorphans", "arch=", "supportconfig=", "outputdir=", "force-refresh" ])
 	except getopt.GetoptError as err:
 		print(err)
 		sv.usage()
@@ -1135,8 +1167,8 @@ def main():
 	product_id = -1
 	package_name = ''
 	short_response = False
-	global show_unknown, show_diff, show_uptodate, show_unsupported
-	global uptodate, different, notfound, unsupported
+	global show_unknown, show_diff, show_uptodate, show_unsupported, show_suseorphans
+	global uptodate, different, notfound, unsupported, suseorphans
 
 	for o, a in opts:
 		if o in ("-h", "--help"):
@@ -1163,6 +1195,8 @@ def main():
 			sv.show_uptodate = True
 		elif o in ("-4", "--show-unsupported"):
 			sv.show_unsupported = True
+		elif o in ("-5", "--show-suseorphans"):
+			sv.show_suseorphans = True
 		elif o in ("-v", "--verbose"):
 			sv.set_verbose(True)
 		elif o in ("-f", "--force-refresh"):
@@ -1172,13 +1206,14 @@ def main():
 			exit(0)
 		elif o in ("-d", "--supportconfig"):
 			supportconfigdir = a
-			uptodate, unsupported, notfound, different = sv.check_supportconfig(supportconfigdir)
+			uptodate, unsupported, notfound, different, suseorphans = sv.check_supportconfig(supportconfigdir)
 			sv.write_reports()
+
 			exit(0)
 		else:
 			assert False, "invalid option"
 
-	if product_id == -1 or package_name is '':
+	if product_id == -1 or package_name == '':
 		print('Please specify a product ID and package name.')
 		sv.usage()
 		exit(2)
@@ -1300,7 +1335,7 @@ class CacheManager(metaclass=Singleton):
 				for m in modules_data:
 					if product_id in modules_data[m]['products']:
 						#print(f"module {m} ({modules_data[m]['name']}) claims to be compatible with product id {product_id} ({product_list[product_id]['name']})")
-						item['repository'] = modules_data[m]['name'] + modules_data[m]['edition'] + modules_data[m]['architecture']
+						item['repository'] = modules_data[m]['name'] + ' ' + modules_data[m]['edition'] + ' ' + modules_data[m]['architecture']
 						#print(f'item found in cache: {item}')
 						return item, modules_data[m]
 		return None, None
@@ -1309,7 +1344,7 @@ class CacheManager(metaclass=Singleton):
 	def remove_record(self, record):
 		with self.acquire_timeout(5) as acquired:
 			if acquired:
-				for item in self.cache_data:
+				for item in self.cache_data.copy():
 					if record['id'] ==  item['id']:
 						print(f'removing record from cache: {record}')
 						self.cache_data.remove(item)
