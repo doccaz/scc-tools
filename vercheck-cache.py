@@ -456,6 +456,7 @@ class SCCVersion():
 	different = []
 	unsupported = []
 	suseorphans = []
+	suseptf = []
  
 	# report flags
 	show_unknown = False
@@ -463,6 +464,7 @@ class SCCVersion():
 	show_uptodate = False
 	show_unsupported = False
 	show_suseorphans = False
+	show_suseptf = False
 
 	# verbose messages
 	verbose = False
@@ -642,7 +644,7 @@ class SCCVersion():
 		return
 
 	def usage(self):
-		print('Usage: ' + sys.argv[0] + ' [-l|--list-products] -p|--product product id -n|--name <package name> [-s|--short] [-v|--verbose] [-1|--show-unknown] [-2|--show-differences] [-3|--show-uptodate] [-4|--show-unsupported] [-5|--show-suseorphans] [-o|--outputdir] [-d|--supportconfig] [-f|--force-refresh]')
+		print('Usage: ' + sys.argv[0] + ' [-l|--list-products] -p|--product product id -n|--name <package name> [-s|--short] [-v|--verbose] [-1|--show-unknown] [-2|--show-differences] [-3|--show-uptodate] [-4|--show-unsupported] [-5|--show-suseorphans] [-6|--show-suseptf] [-o|--outputdir] [-d|--supportconfig] [-f|--force-refresh]')
 		return
 
 	def show_help(self):
@@ -658,6 +660,7 @@ class SCCVersion():
 		print('-3|--show-uptodate)\t\tshows packages that are on par with the updated versions as they are found.\n')
 		print('-4|--show-unsupported)\t\tshows packages that have a vendor that is different from the system it was collected from.\n')
 		print('-5|--show-suseorphans)\t\tshows packages that are from SUSE, but are now orphans (e.g. from different OS/product versions).\n')
+		print('-6|--show-suseptf)\t\tshows SUSE-made PTF (Program Temporary Fix) packages.\n')
 		print('-o|--outputdir)\t\tspecify an output directory for the reports. Default: current directory.\n')
 		print('-d|--supportconfig\t\tAnalyzes a supportconfig directory and generates CSV reports for up-to-date, not found and different packages.\n')
 		print('-a|--arch\t\tSupply an architecture for the supportconfig analysis.')
@@ -879,7 +882,6 @@ class SCCVersion():
 				sys.stdout.flush()
 			time.sleep(.1)
 
-
 		# check if there are SUSE orphan packages in notfound
 		self.notfound.sort()
 		for package, distribution, version in self.notfound.copy():
@@ -889,10 +891,20 @@ class SCCVersion():
 				self.notfound.remove([package, distribution, version])
 				self.suseorphans.append([package, distribution, version])
 
+		# check if there are SUSE PTF packages in unsupported
+		self.unsupported.sort()
+		for package, distribution, version in self.unsupported.copy():
+			if 'SUSE Linux Enterprise PTF' in distribution:
+				if self.verbose:
+					print(f'**** moving SUSE PTF package to appropriate list: {package}-{version} ({distribution})')
+				self.unsupported.remove([package, distribution, version])
+				self.suseptf.append([package, distribution, version])
+
+
 		sys.stdout.write('\nDone.\n')
 		sys.stdout.flush()
 		
-		return (self.uptodate, self.unsupported, self.notfound, self.different, self.suseorphans)
+		return (self.uptodate, self.unsupported, self.notfound, self.different, self.suseorphans, self.suseptf)
 
 	def write_reports(self):
 		if len(self.uptodate) == 0:
@@ -950,6 +962,15 @@ class SCCVersion():
 				print('Error writing file: ' + str(e))
 				return
 
+			try:
+				with open(os.path.join(self.outputdir, 'vercheck-suseptf-' + self.sc_name + '.csv'), 'w') as f:
+					for p, d, c in self.suseptf:
+						f.write(p + ',' + d + ',' + c + '\n')
+					f.close()
+			except Exception as e:
+				print('Error writing file: ' + str(e))
+				return
+
 		field_size = 30
 		if self.show_uptodate:
 			print('\n\t\t---  Up-to-date packages ---\n')
@@ -990,6 +1011,15 @@ class SCCVersion():
 			for p, c, l  in self.suseorphans:
 					print(str.ljust(p, field_size) + '\t' + str.ljust(c, field_size) + '\t' + str.ljust(l, field_size))
 			print('\nTotal: ' + str(len(self.suseorphans)) + ' packages')
+
+		if self.show_suseptf:
+			print('\n\t\t--- SUSE PTF packages ---\n')
+			print(str.ljust('Name', field_size) + '\t' + str.ljust('Vendor', field_size) + '\t' + str.ljust('Current Version', field_size))
+			print('=' * 80)
+			for p, c, l  in self.suseptf:
+					print(str.ljust(p, field_size) + '\t' + str.ljust(c, field_size) + '\t' + str.ljust(l, field_size))
+			print('\nTotal: ' + str(len(self.suseptf)) + ' packages')
+
 		return
 
 
@@ -1158,7 +1188,7 @@ def main():
 	signal.signal(signal.SIGINT, sv.cleanup)
 
 	try:
-		opts,args = getopt.getopt(sys.argv[1:],  "hp:n:lsvt12345a:d:o:f", [ "help", "product=", "name=", "list-products", "short", "verbose", "test", "show-unknown", "show-differences", "show-uptodate", "show-unsupported", "show-suseorphans", "arch=", "supportconfig=", "outputdir=", "force-refresh" ])
+		opts,args = getopt.getopt(sys.argv[1:],  "hp:n:lsvt123456a:d:o:f", [ "help", "product=", "name=", "list-products", "short", "verbose", "test", "show-unknown", "show-differences", "show-uptodate", "show-unsupported", "show-suseorphans", "show-suseptf", "arch=", "supportconfig=", "outputdir=", "force-refresh" ])
 	except getopt.GetoptError as err:
 		print(err)
 		sv.usage()
@@ -1167,8 +1197,8 @@ def main():
 	product_id = -1
 	package_name = ''
 	short_response = False
-	global show_unknown, show_diff, show_uptodate, show_unsupported, show_suseorphans
-	global uptodate, different, notfound, unsupported, suseorphans
+	global show_unknown, show_diff, show_uptodate, show_unsupported, show_suseorphans, show_suseptf
+	global uptodate, different, notfound, unsupported, suseorphans, suseptf
 
 	for o, a in opts:
 		if o in ("-h", "--help"):
@@ -1197,6 +1227,8 @@ def main():
 			sv.show_unsupported = True
 		elif o in ("-5", "--show-suseorphans"):
 			sv.show_suseorphans = True
+		elif o in ("-6", "--show-suseptf"):
+			sv.show_suseptf = True
 		elif o in ("-v", "--verbose"):
 			sv.set_verbose(True)
 		elif o in ("-f", "--force-refresh"):
@@ -1206,7 +1238,7 @@ def main():
 			exit(0)
 		elif o in ("-d", "--supportconfig"):
 			supportconfigdir = a
-			uptodate, unsupported, notfound, different, suseorphans = sv.check_supportconfig(supportconfigdir)
+			uptodate, unsupported, notfound, different, suseorphans, suseptf = sv.check_supportconfig(supportconfigdir)
 			sv.write_reports()
 
 			exit(0)
