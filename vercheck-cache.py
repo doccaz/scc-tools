@@ -473,7 +473,7 @@ class SCCVersion():
 	sc_name = ''
 
 	# maximum number of running threads
-	max_threads = 25
+	max_threads = 35
 
 	# time to wait before starting each chunk of threads
 	wait_time = 10
@@ -1178,7 +1178,8 @@ class PackageSearchEngine(Thread):
 		#print('refined data size: ' + str(len(refined_data)))
 		self.results = refined_data
 		self.done = True
-		del self.cm
+		self.cm.write_cache()
+		# del self.cm
 		return
 
 
@@ -1291,6 +1292,7 @@ class CacheManager(metaclass=Singleton):
 	active_cache_file = ''
 	_lock = Lock()
 	initialized = False
+	verbose = False
      
 	def __init__(self):
 		if (os.access(self.default_cache_dir, os.W_OK)):
@@ -1339,7 +1341,8 @@ class CacheManager(metaclass=Singleton):
 		try:
 			with self.acquire_timeout(2) as acquired:
 				if acquired:
-					print(f'writing {len(self.cache_data)} items to cache at {self.active_cache_file}')
+					if self.verbose:
+						print(f'writing {len(self.cache_data)} items to cache at {self.active_cache_file}')
 					with open(self.active_cache_file, "w+") as f:
 						f.write(json.dumps(self.cache_data, default=self.dt_parser))
 				else:
@@ -1359,7 +1362,8 @@ class CacheManager(metaclass=Singleton):
 			if package_name == item['name']:
 				for p in item['products']:
 					if product_id == p['id']:
-						#print(f'item found in cache: {item}')
+						if self.verbose:
+							print(f"* cache hit: {item}")
 						item['repository'] = p['name'] + ' ' + p['edition'] + ' ' +  p['architecture']
 						return item, p
   
@@ -1368,7 +1372,8 @@ class CacheManager(metaclass=Singleton):
 					if product_id in modules_data[m]['products']:
 						#print(f"module {m} ({modules_data[m]['name']}) claims to be compatible with product id {product_id} ({product_list[product_id]['name']})")
 						item['repository'] = modules_data[m]['name'] + ' ' + modules_data[m]['edition'] + ' ' + modules_data[m]['architecture']
-						#print(f'item found in cache: {item}')
+						if self.verbose:
+							print(f"* cache hit: {item}")
 						return item, modules_data[m]
 		return None, None
  
@@ -1378,7 +1383,8 @@ class CacheManager(metaclass=Singleton):
 			if acquired:
 				for item in self.cache_data.copy():
 					if record['id'] ==  item['id']:
-						print(f'removing record from cache: {record}')
+						if self.verbose:
+							print(f'removing record from cache: {record}')
 						self.cache_data.remove(item)
 			else:
 				print('remove_record: could not acquire lock!')
@@ -1396,7 +1402,8 @@ class CacheManager(metaclass=Singleton):
 						found = True
 						break
 				if (found is False):
-					print(f"cache: added record for {record['id']}")
+					if self.verbose:
+						print(f"* cache: added record for {record['id']}")
 					self.cache_data.append(record)
 				#else:
 				#	print('cache: rejecting duplicate item')
