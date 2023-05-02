@@ -685,7 +685,7 @@ class SCCVersion():
 				#if t.is_alive():
 					t.join(timeout=5)
 					if t.is_alive():
-						print(f'thread {t.name} is not ready yet, skipping')
+						print('thread ' + t.name + ' is not ready yet, skipping')
 						self.threads.append(t)
 						continue
 					refined_data = t.get_results()
@@ -824,15 +824,15 @@ class SCCVersion():
 		while to_process > 0:
 			for t in [t for t in self.threads if t.done and t.processed == False]:
 				if self.verbose:
-					print(f'joining thread {t.name} (waiting: {to_process})...')
+					print('joining thread ' + t.name + ' (waiting: ' + str(to_process) + ')...')
 				t.join(timeout=5)
 				# time.sleep(.001)
 				if t.is_alive():
-					print(f'thread {t.name} is not ready yet, skipping')
+					print('thread ' + t.name + ' is not ready yet, skipping')
 					self.threads.append(t)
 					continue
 				# else:
-				#	print(f'thread {t.name} is dead')
+				#	print('thread ' + t.name + ' is dead')
      
 				refined_data = t.get_results()
 				#print('refined data = ' + str(refined_data))
@@ -875,9 +875,9 @@ class SCCVersion():
 					#print('[thread ' + str(thread_number) + '] could not find any version for package ' + refined_data['query'])
 					pass
 				except KeyError as e:
-					print(f'Cannot find field: {e}')
+					print('Cannot find field: ' + e)
 					pass
-				print(f'thread {t.name} is done')
+				print('thread ' + t.name + ' is done')
 				time.sleep(.1)
 				sys.stdout.flush()
 			time.sleep(.1)
@@ -887,7 +887,7 @@ class SCCVersion():
 		for package, distribution, version in self.notfound.copy():
 			if 'SUSE Linux Enterprise' in distribution:
 				if self.verbose:
-					print(f'**** moving SUSE orphan package to appropriate list: {package}-{version} ({distribution})')
+					print('**** moving SUSE orphan package to appropriate list: ' + package + '-' + version + ' ('  + distribution + ')')
 				self.notfound.remove([package, distribution, version])
 				self.suseorphans.append([package, distribution, version])
 
@@ -896,7 +896,7 @@ class SCCVersion():
 		for package, distribution, version in self.unsupported.copy():
 			if 'SUSE Linux Enterprise PTF' in distribution:
 				if self.verbose:
-					print(f'**** moving SUSE PTF package to appropriate list: {package}-{version} ({distribution})')
+					print('**** moving SUSE PTF package to appropriate list: ' + package + '-' + version +  ' (' + distribution + ')')
 				self.unsupported.remove([package, distribution, version])
 				self.suseptf.append([package, distribution, version])
 
@@ -1106,19 +1106,19 @@ class PackageSearchEngine(Thread):
 								item['product_id'] = self.product_id           
 								refined_data.append(item)
 							else:
-								print(f'cached data for {self.package_name} is too old ({age.days} days), discarding cache entry')
+								print('cached data for ' + self.package_name + ' is too old ( ' +  str(age.days) + ' days), discarding cache entry')
 								self.cm.remove_record(item)
 								cached = False
 			except KeyError as e:
-					print(f'invalid cache entry for {self.package_name}, removing (reason: {e})')
+					print('invalid cache entry for ' + self.package_name + ', removing (reason: ' + e + ')')
 					self.cm.remove_record(item)
 	
 		if (cached):
 			self.sort_and_deliver(refined_data)
-			print(f'found {self.package_name} for product ID {self.product_id} (cached)')
+			print('found ' + self.package_name + ' for product ID ' + str(self.product_id) + ' (cached)')
 			return
 		else:
-			print(f'searching for {self.package_name} for product ID {self.product_id} in SCC')
+			print('searching for ' + self.package_name + ' for product ID ' + str(self.product_id) + ' in SCC')
 			while not valid_response and tries < self.max_tries:
 				try:
 					r = self.http.request('GET', 'https://scc.suse.com/api/package_search/packages?product_id=' + str(self.product_id) + '&query=' + urllib.parse.quote(self.package_name), headers={'Accept-Encoding': 'gzip, deflate', 'Connection':'close'})
@@ -1151,7 +1151,7 @@ class PackageSearchEngine(Thread):
 				for item in return_data['data']:
 					# discard items that do not match exactly our query
 					if item['name'] != self.package_name:
-						#print(f'discarding item: {item}')
+						#print('discarding item: ' + item)
 						continue
 					else:
 						# valid data, add it to the cache and to the results
@@ -1303,18 +1303,18 @@ class CacheManager(metaclass=Singleton):
 				os.makedirs(self.user_cache_dir)
 	
 		self.load_cache()
-		# print(f'my cache has {len(self.cache_data)} entries')
+		# print('my cache has ' + len(self.cache_data) + ' entries')
 		weakref.finalize(self, self.write_cache)
   
 	@contextmanager
 	def acquire_timeout(self, timeout):
 		result = self._lock.acquire(timeout=timeout)
 		time.sleep(0.001)
-		# print(f'lock result = {result}')
+		# print('lock result = ' + result)
 		if result:
 			self._lock.release()
 		yield result
-		# print(f'lock status: {lock.locked()}')
+		# print('lock status: ' + lock.locked())
 
 	# loads the JSON cache if available 
 	def load_cache(self):
@@ -1326,13 +1326,13 @@ class CacheManager(metaclass=Singleton):
 						with open(self.active_cache_file, "r") as f:
 							self.cache_data = json.loads(f.read())
 						self.initialized = True
-						print(f'loaded {len(self.cache_data)} items from cache ({self.active_cache_file})')
+						print('loaded ' + str(len(self.cache_data)) + ' items from cache (' + self.active_cache_file + ')')
 		except IOError:
-			#print(f'Error reading the package cache from {self.active_cache_file} (non-fatal)')
+			#print('Error reading the package cache from ' + self.active_cache_file + '(non-fatal)')
 			return False
 		except json.decoder.JSONDecodeError:
-			print(f'Invalid cache data (non-fatal)')
-			#print(f'Data read: [{self.cache_data}]')
+			print('Invalid cache data (non-fatal)')
+			#print('Data read: ' + '[' + self.cache_data + ']')
 			return False
 		return True
 
@@ -1342,7 +1342,7 @@ class CacheManager(metaclass=Singleton):
 			with self.acquire_timeout(2) as acquired:
 				if acquired:
 					if self.verbose:
-						print(f'writing {len(self.cache_data)} items to cache at {self.active_cache_file}')
+						print('writing ' + str(len(self.cache_data)) + ' items to cache at ' + self.active_cache_file)
 					with open(self.active_cache_file, "w+") as f:
 						f.write(json.dumps(self.cache_data, default=self.dt_parser))
 				else:
@@ -1363,17 +1363,17 @@ class CacheManager(metaclass=Singleton):
 				for p in item['products']:
 					if product_id == p['id']:
 						if self.verbose:
-							print(f"* cache hit: {item}")
+							print("* cache hit: " + item)
 						item['repository'] = p['name'] + ' ' + p['edition'] + ' ' +  p['architecture']
 						return item, p
   
 				# check compatible module list
 				for m in modules_data:
 					if product_id in modules_data[m]['products']:
-						#print(f"module {m} ({modules_data[m]['name']}) claims to be compatible with product id {product_id} ({product_list[product_id]['name']})")
+						#print("module " + m + "(" + modules_data[m]['name'] + ") claims to be compatible with product id " + product_id + "(" + product_list[product_id]['name'] + ")")
 						item['repository'] = modules_data[m]['name'] + ' ' + modules_data[m]['edition'] + ' ' + modules_data[m]['architecture']
 						if self.verbose:
-							print(f"* cache hit: {item}")
+							print("* cache hit: " + item)
 						return item, modules_data[m]
 		return None, None
  
@@ -1384,16 +1384,16 @@ class CacheManager(metaclass=Singleton):
 				for item in self.cache_data.copy():
 					if record['id'] ==  item['id']:
 						if self.verbose:
-							print(f'removing record from cache: {record}')
+							print('removing record from cache: ' + record)
 						self.cache_data.remove(item)
 			else:
 				print('remove_record: could not acquire lock!')
 				exit(1)
-		# print(f'items in cache: {len(self.cache_data)}')
+		# print('items in cache: ' +  str(len(self.cache_data)))
   
 	# adds a new record to the cache
 	def add_record(self, record):
-		# print(f'appending record to cache: {record}')
+		# print('appending record to cache: ' + record)
 		with self.acquire_timeout(5) as acquired:
 			if acquired:
 				found=False
@@ -1403,14 +1403,14 @@ class CacheManager(metaclass=Singleton):
 						break
 				if (found is False):
 					if self.verbose:
-						print(f"* cache: added record for {record['id']}")
+						print("* cache: added record for " + record['id'])
 					self.cache_data.append(record)
 				#else:
 				#	print('cache: rejecting duplicate item')
 			else:
 				print('add_record: could not acquire lock!')
 				exit(1)
-		# print(f'items in cache: {len(self.cache_data)}')
+		# print('items in cache: ' + str(len(self.cache_data)))
     
 	def get_max_age(self):
 		return self.max_age_days
