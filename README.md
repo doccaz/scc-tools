@@ -7,22 +7,23 @@ It basically uses the APIs available at https://scc.suse.com/api/package_search/
 
 ## vercheck
 
-This tool searches for the latest version of a package, for one specific product.
+This tool searches for the latest versions of packages on SCC.
+
+It started as a pet project to do a simple package search with the API, but it evolved into a much more complex tool that can analyze supportconfig archives, correlate product versions and repositories, and generate reports on package versions. 
+
+Disclaimer: I'm a SUSE employee.
 
 Usage: 
 ```
-# Usage: vercheck.py [-l|--list-products] -p|--product=product id -n|--name <package name> [-s|--short] [-v|--verbose]  [-1|--show-unknown] [-2|--show-differences] [-3|--show-uptodate] [-4|--show-unsupported] [-5|--show-suseorphans] [-6|--show-suseptf] [-o|--outputdir] [-d|--supportconfig]
+# ./vercheck.py [-l|--list-products] -p|--product product id -n|--name <package name> [-s|--short] [-v|--verbose] [-1|--show-unknown] [-2|--show-differences] [-3|--show-uptodate] [-4|--show-unsupported] [-5|--show-suseorphans] [-6|--show-suseptf] [-o|--outputdir] [-d|--supportconfig] [-f|--force-refresh] [-V|--version]
 ```
 
 It uses compression, and a single urllib3 pool instance, to minimize the impact on the public server as much as possible. In order to speed things up, I open multiple threads and consume the RPM list slowly.
 I also tried to use all resources that do NOT require authentication, inspired by the public package search at https://scc.suse.com/packages . That is why I opted to use a *static* product list inside the code (which doesn't really change that often).
 
-## vercheck-cache
+Vercheck has an internal cache. This was made in order to sidestep current rate-limiting issues on the SCC API servers (issue #22).
 
-This is an currently supported version of the main vercheck script that has an internal cache. This was made in order to sidestep current rate-limiting issues on the SCC API servers (issue #22).
-
-The main differences are:
-
+This is how it works:
 1) a JSON file (scc_data.json) is created/updated to hold cache entries, either in /var/cache/scc-tools or ~/.cache/scc-tools. The directory is selected based on whether it can write to each location, in order of preference.
 
 2) the cache currently holds entries for 5 days. This guarantees that fresh information can be retrieved in a reasonable timeframe if necessary.
@@ -32,7 +33,7 @@ cached data for zypper is too old (-6 days), discarding cache entry
 removing record from cache: {'id': 21851832, 'name': 'zypper', 'arch': 'x86_64', 'version': '1.14.51', 'release': '3.52.1', 'products': [{'id': 2219, 'name': 'SUSE Linux Enterprise Server LTSS', 'identifier': 'SLES-LTSS/15.1/x86_64', 'type': 'extension', 'free': False, 'edition': '15 SP1', 'architecture': 'x86_64'}], 'timestamp': '2022-03-12T02:15:30.193223', 'repository': 'Basesystem Module 15 SP2 x86_6415 SP2x86_64', 'product_id': 1939}
 searching for zypper for product ID 1939 in SCC
 ```
-3) this version contains an internal table correlating each product to modules (taken from RMT). This is necessary in order to maintain cache consistency, as sometimes a suitable updated package resides in a different module repository, and we need to know what was the original product ID in order to return the correct cache entry.
+3) it also contains an internal table correlating each product to modules (taken from RMT). This is necessary in order to maintain cache consistency, as sometimes a suitable updated package resides in a different module repository, and we need to know what was the original product ID in order to return the correct cache entry.
 
 4) there is an additional command-line option:
 ```
@@ -40,7 +41,7 @@ searching for zypper for product ID 1939 in SCC
 ```
 This ignores the cache and goes straight to SCC for the latest data (the results are added to the cache at the end for later use though).
 
-5) this version is even more heavily multi-threaded than the original one, and as such it has a way more complex data locking logic.
+5) it's also heavily multi-threaded, and as such it has a way more complex data locking logic.
 
 *IMPORTANT*: as we discovered through testing, running multiple parallel copies of this version may "lose" some of the recently refreshed cache entries. This limitation is by design. What happens is that in every session I read the cached entries to memory, then write it all at the end. Everything is changed in-memory. So, whoever runs last "wins". This is to avoid thousands of small disk writes, and possibly being called a "disk killer" :-)
 In the future I intend to implement a more robust cache backend (sqlite?) and address this. I might also merge it back to a single version of the script.
