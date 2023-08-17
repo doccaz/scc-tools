@@ -19,6 +19,9 @@ import warnings
 ### main class that deals with command lines, reports and everything else
 class SCCVersion():
 
+	version = '2.0'
+	build = '20230817'
+ 
 	# static product list (taken from RMT and other sources)
 	# rmt-cli products list --name "SUSE Linux Enterprise Server" --all
 	# rmt-cli products list --name "SUSE Linux Enterprise Desktop" --all
@@ -515,6 +518,29 @@ class SCCVersion():
 		sys.exit(1)
 		return
 
+	def color(text, color, bold=True):
+		esc = '\x1b['
+		ret = ""
+		if bold:
+			ret += esc + '1m'
+		reset = esc + '0m'
+		if color == 'red':
+			ret += esc + '31m' + text + reset
+		elif color == 'green':
+			ret += esc + '32m' + text + reset
+		elif color == 'yellow':
+			ret += esc + '33m' + text + reset
+		elif color == 'blue':
+			ret += esc + '34m' + text + reset
+		elif color == 'magenta':
+			ret += esc + '35m' + text + reset
+		elif color == 'cyan':
+			ret += esc + '36m' + text + reset
+		else:
+			return text
+		return ret
+
+		
 	def find_suma(self, directory_name):
 		regex_suma=r"SUSE Manager release (.*) .*"
 		try:
@@ -644,7 +670,11 @@ class SCCVersion():
 		return
 
 	def usage(self):
-		print('Usage: ' + sys.argv[0] + ' [-l|--list-products] -p|--product product id -n|--name <package name> [-s|--short] [-v|--verbose] [-1|--show-unknown] [-2|--show-differences] [-3|--show-uptodate] [-4|--show-unsupported] [-5|--show-suseorphans] [-6|--show-suseptf] [-o|--outputdir] [-d|--supportconfig] [-f|--force-refresh]')
+		print('Usage: ' + sys.argv[0] + ' [-l|--list-products] -p|--product product id -n|--name <package name> [-s|--short] [-v|--verbose] [-1|--show-unknown] [-2|--show-differences] [-3|--show-uptodate] [-4|--show-unsupported] [-5|--show-suseorphans] [-6|--show-suseptf] [-o|--outputdir] [-d|--supportconfig] [-f|--force-refresh] [-V|--version]')
+		return
+
+	def show_version(self):
+		print('SCC VerCheck version ' + SCCVersion.color(self.version + '-' + self.build, 'green') + ' by Erico Mendonca <erico.mendonca@suse.com>\n')
 		return
 
 	def show_help(self):
@@ -665,6 +695,7 @@ class SCCVersion():
 		print('-d|--supportconfig\t\tAnalyzes a supportconfig directory and generates CSV reports for up-to-date, not found and different packages.\n')
 		print('-a|--arch\t\tSupply an architecture for the supportconfig analysis.')
 		print('-f|--force-refresh\t\tIgnore cached data and retrieve latest data from SCC')
+		print('-V|--version\t\tShow program version')
 		print('\n')
 		return
 
@@ -723,7 +754,7 @@ class SCCVersion():
 			if self.short_response:
 				print(refined_data['results'][0]['version'] + '-' + refined_data['results'][0]['release'])
 			else:
-				print('latest version for ' + refined_data['query'] + ' on product ID ' + str(refined_data['product_id']) +  ' is ' + refined_data['results'][0]['version'] + '-' + refined_data['results'][0]['release'])
+				print('latest version for ' + SCCVersion.color(refined_data['query'], 'yellow') + ' on product ID ' + str(refined_data['product_id']) +  '(' + SCCVersion.color(plist[product_id]['name'], 'yellow') + ') is ' + SCCVersion.color(refined_data['results'][0]['version'] + '-' + refined_data['results'][0]['release'], 'green') + ', found on ' + SCCVersion.color(refined_data['results'][0]['products'][0]['name'] + ' (' + refined_data['results'][0]['products'][0]['identifier'] + ')', 'green'))
 			if self.verbose:
 				for item in refined_data['results']:
 					print('version ' + item['version'] + '-' + item['release'] + ' is available on repository [' + item['repository'] + ']')
@@ -1189,7 +1220,7 @@ def main():
 	signal.signal(signal.SIGINT, sv.cleanup)
 
 	try:
-		opts,args = getopt.getopt(sys.argv[1:],  "hp:n:lsvt123456a:d:o:f", [ "help", "product=", "name=", "list-products", "short", "verbose", "test", "show-unknown", "show-differences", "show-uptodate", "show-unsupported", "show-suseorphans", "show-suseptf", "arch=", "supportconfig=", "outputdir=", "force-refresh" ])
+		opts,args = getopt.getopt(sys.argv[1:],  "Vhp:n:lsvt123456a:d:o:f", [ "version", "help", "product=", "name=", "list-products", "short", "verbose", "test", "show-unknown", "show-differences", "show-uptodate", "show-unsupported", "show-suseorphans", "show-suseptf", "arch=", "supportconfig=", "outputdir=", "force-refresh" ])
 	except getopt.GetoptError as err:
 		print(err)
 		sv.usage()
@@ -1204,6 +1235,9 @@ def main():
 	for o, a in opts:
 		if o in ("-h", "--help"):
 			sv.show_help()
+			exit(1)
+		if o in ("-V", "--version"):
+			sv.show_version()
 			exit(1)
 		elif o in ("-a", "--arch"):
 			sv.arch = a
