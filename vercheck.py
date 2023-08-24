@@ -750,11 +750,19 @@ class SCCVersion():
 		# fetch results for the only thread
 		self.threads[0].join()
 		refined_data = self.threads[0].get_results()
+		sle_results = [p for p in refined_data['results'] if 'SUSE Linux Enterprise' in p['repository']]
+  
 		try:
 			if self.short_response:
-				print(refined_data['results'][0]['version'] + '-' + refined_data['results'][0]['release'])
+				if len(sle_results) > 0:
+					print(sle_results[0]['version'] + '-' + sle_results[0]['release'])	
+				else:
+					print(refined_data['results'][0]['version'] + '-' + refined_data['results'][0]['release'])
 			else:
-				print('latest version for ' + SCCVersion.color(refined_data['query'], 'yellow') + ' on product ID ' + str(refined_data['product_id']) +  '(' + SCCVersion.color(plist[product_id]['name'], 'yellow') + ') is ' + SCCVersion.color(refined_data['results'][0]['version'] + '-' + refined_data['results'][0]['release'], 'green') + ', found on ' + SCCVersion.color(refined_data['results'][0]['products'][0]['name'] + ' (' + refined_data['results'][0]['products'][0]['identifier'] + ')', 'green'))
+				if len(sle_results) > 0:
+					print('latest version for ' + SCCVersion.color(refined_data['query'], 'yellow') + ' on product ID ' + str(refined_data['product_id']) +  '(' + SCCVersion.color(plist[product_id]['name'], 'yellow') + ') is ' + SCCVersion.color(sle_results[0]['version'] + '-' + sle_results[0]['release'], 'green') + ', found on ' + SCCVersion.color(sle_results[0]['products'][0]['name'] + ' (' + sle_results[0]['products'][0]['identifier'] + ')', 'green'))
+				else:
+					print('latest version for ' + SCCVersion.color(refined_data['query'], 'yellow') + ' on product ID ' + str(refined_data['product_id']) +  '(' + SCCVersion.color(plist[product_id]['name'], 'yellow') + ') is ' + SCCVersion.color(refined_data['results'][0]['version'] + '-' + refined_data['results'][0]['release'], 'green') + ', found on ' + SCCVersion.color(refined_data['results'][0]['products'][0]['name'] + ' (' + refined_data['results'][0]['products'][0]['identifier'] + ')', 'green'))
 			if self.verbose:
 				for item in refined_data['results']:
 					print('version ' + item['version'] + '-' + item['release'] + ' is available on repository [' + item['repository'] + ']')
