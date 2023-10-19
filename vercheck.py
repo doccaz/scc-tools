@@ -16,6 +16,8 @@ import pdb
 import weakref
 import warnings
 
+import yaml
+
 ### main class that deals with command lines, reports and everything else
 class SCCVersion():
 
@@ -1225,6 +1227,7 @@ class PackageSearchEngine(Thread):
 #### main program
 def main():
 	sv = SCCVersion()
+	pc = PublicCloudCheck()
 	signal.signal(signal.SIGINT, sv.cleanup)
 
 	try:
@@ -1281,8 +1284,12 @@ def main():
 			exit(0)
 		elif o in ("-d", "--supportconfig"):
 			supportconfigdir = a
-			uptodate, unsupported, notfound, different, suseorphans, suseptf = sv.check_supportconfig(supportconfigdir)
-			sv.write_reports()
+			if (pc.analyze(supportconfigdir)):
+				pc.get_report()
+				exit(0)
+			else:
+				uptodate, unsupported, notfound, different, suseorphans, suseptf = sv.check_supportconfig(supportconfigdir)
+				sv.write_reports()
 
 			exit(0)
 		else:
@@ -1464,6 +1471,342 @@ class CacheManager(metaclass=Singleton):
 	def get_cache_data(self):
 		return self.cache_data
 
+
+class PublicImageCacheManager():
+	cache_data = []	
+	max_age_days = -5 # entries from the cache over 5 days old are discarded
+	user_cache_dir = os.path.join(os.getenv('HOME'), '.cache/scc-tools')
+	default_cache_dir = '/var/cache/scc-tools'
+	provider = ''
+	cache_file = ''
+	initialized = False
+ 
+	def __init__(self, provider):
+		self.provider = provider
+		self.cache_file = 'public_cloud_' + provider + '.json'
+  
+		if (os.access(self.default_cache_dir, os.W_OK)):
+			self.active_cache_file = os.path.join(self.default_cache_dir, self.cache_file)
+		else:
+			self.active_cache_file = os.path.join(self.user_cache_dir, self.cache_file)
+			if (os.path.exists(self.user_cache_dir) is False):
+				os.makedirs(self.user_cache_dir)
+	
+ 
+		if self.load_cache():  
+			age=datetime.strptime(self.cache_data['timestamp'], "%Y-%m-%dT%H:%M:%S.%f") - datetime.now()
+			if age.days > self.get_max_age():
+				print(f'* cached data OK ({age.days} days old)')
+			else:
+				print(f'* cached data for {provider} is too old, downloading')
+				self.cache_data = self.get_image_states(provider)
+				with open(self.active_cache_file, 'w') as f:
+					f.write(json.dumps(self.cache_data))
+		else:
+			print(f'* cached data for {provider} does not exist, downloading')
+			self.cache_data = self.get_image_states(provider)
+			with open(self.active_cache_file, 'w') as f:
+				f.write(json.dumps(self.cache_data))
+
+		self.initialized = True
+		return
+
+	def load_cache(self):
+		try:
+			if not self.initialized:
+				# if the default directory is writeable, use it
+				with open(self.active_cache_file, "r") as f:
+					self.cache_data = json.loads(f.read())
+				self.initialized = True
+				print('loaded ' + str(len(self.cache_data)) + ' items from cache (' + self.active_cache_file + ')')
+		except IOError:
+			#print('Error reading the package cache from ' + self.active_cache_file + '(non-fatal)')
+			return False
+		except json.decoder.JSONDecodeError:
+			print('Invalid cache data (non-fatal)')
+			#print('Data read: ' + '[' + self.cache_data + ']')
+			return False
+
+		return True
+
+	def get_cache_data(self):
+		return self.cache_data
+
+	def get_max_age(self):
+		return self.max_age_days
+
+	def dt_parser(dt):
+		if isinstance(dt, datetime):
+			return dt.isoformat()
+
+	def fetch_image_states(self, provider, list_type):
+		print(f'-- Downloading data for {list_type} images on {provider}...')
+
+		# single instance for urllib3 pool
+		http = urllib3.PoolManager(maxsize=5)
+		
+		# maximum retries for each thread
+		max_tries = 5
+		tries = 0
+
+		valid_response = False
+
+		# server replies which are temporary errors (and can be retried)
+		retry_states = [ 429, 502, 504 ]
+
+		# server replies which are permanent errors (and cannot be retried)
+		error_states = [ 400, 403, 404, 422, 500 ]
+
+		base_url = "https://susepubliccloudinfo.suse.com/v1/" + provider + "/images/" + list_type + ".json"
+
+		while not valid_response and tries < max_tries:
+			try:
+				r = http.request('GET', base_url, headers={'Accept-Encoding': 'gzip, deflate', 'Connection':'close'})
+			except Exception as e:
+				print('Error while connecting: ' + str(e))
+				exit(1)
+
+			return_data = {}
+
+			if r.status == 200:
+				if tries > 0:
+					print('got a good reply after %d tries' % (tries))
+				return_data = json.loads(r.data.decode('utf-8'))
+				valid_response = True
+			elif r.status in error_states:
+				if r.data:
+					json_data = json.loads(r.data.decode('utf-8'))
+					print('cannot be processed due to error: [' + json_data['error'] + ']')
+				print('got a fatal error (%d). Results will be incomplete!\nPlease contact the service administrators or try again later.' % (r.status))
+				break
+			elif r.status in retry_states:
+				print('got non-fatal reply (%d) from server, trying again in 5 seconds ' % (r.status))
+				time.sleep(5)
+				tries = tries + 1
+				continue
+			else:
+				print('got unknown error %d from the server!' % r.status)
+				
+		return return_data['images']
+
+	def get_image_states(self, provider):
+		image_data = {}
+		image_data['timestamp'] = datetime.now().isoformat()
+		image_data['active'] = self.fetch_image_states(provider, 'active')
+		image_data['inactive'] = self.fetch_image_states(provider, 'inactive')
+		image_data['deprecated'] = self.fetch_image_states(provider, 'deprecated')
+		image_data['deleted'] = self.fetch_image_states(provider, 'deleted')
+		return image_data
+
+
+class PublicCloudCheck():
+	aws_image_data = {}
+	gcp_image_data = {}
+	azure_image_data = {}
+	valid_states = [ 'active', 'inactive', 'deprecated', 'deleted']
+	match_data = {}
+	aws_cm = None
+	azure_cm = None
+	gcp_cm = None
+
+	def __init__(self, verbose=True):
+		self.match_data = {}
+		self.aws_cm = PublicImageCacheManager(provider='amazon')
+		self.gcp_cm = PublicImageCacheManager(provider='google')
+		self.azure_cm = PublicImageCacheManager(provider='microsoft')
+		self.aws_image_data = self.aws_cm.get_cache_data()
+		self.gcp_image_data = self.gcp_cm.get_cache_data()
+		self.azure_image_data = self.azure_cm.get_cache_data()
+
+		if verbose:
+			print(f"--- AMAZON data as of {self.aws_image_data['timestamp']}")
+			for state in self.valid_states:
+				print(f"* {len(self.aws_image_data[state])} {state} images")
+			print()
+			print(f"--- MICROSOFT data as of {self.aws_image_data['timestamp']}")
+			for state in self.valid_states:
+				print(f"* {len(self.azure_image_data[state])} {state} images")
+			print()
+			print(f"--- GOOGLE data as of {self.aws_image_data['timestamp']}")
+			for state in self.valid_states:
+				print(f"* {len(self.gcp_image_data[state])} {state} images")
+			print()
+
+		return
+  
+	def analyze(self, basedir):
+		self.provider = self.get_public_image_type(basedir)
+		print(f"--> Public cloud provider for {basedir} is [{self.provider}]")
+		if self.provider == "unknown":
+			print('--> this image has invalid (but present) public cloud metadata. Continuing normal analysis.')
+			return False
+		elif self.provider == 'none':
+			print('--> not a public cloud image, continuing normal analysis')
+			return False
+		else:
+			self.match_data = self.process_public_cloud(basedir, self.provider)
+		return True
+
+	def get_results(self):
+		return self.match_data
+
+	def get_report(self):
+		if self.match_data['license_type'] != '':
+			print(f"--> license type is [{self.match_data['license_type']}]")
+            
+		if self.match_data['version'] != '':
+			print(f"--> Results for search on image [{self.match_data['name']}], version [{self.match_data['version']}]:")
+		else:
+			print(f"--> Results for search on image [{self.match_data['name']}]:")
+            
+		if self.match_data['unsupported']:
+			print(f"*** Unsupported image found for public cloud {self.provider}")
+		else:
+			for state in self.valid_states:
+				for item in self.match_data[state]:
+					if 'id' in item.keys():
+						print(f"{state.upper()}: image id [{item['id']}] ({item['name']})")
+					else:    
+						print(f"{state.upper()}: image [{item['name']}]")
+					print(f"* publish date: [{item['publishedon']}]")
+					print(f"* more info: [{item['changeinfo']}]")
+					print(f"* deprecated since [{item['deprecatedon']}]")
+					print(f"* deleted on [{item['deletedon']}]")
+					print(f"* replaced by [{item['replacementname']}]")
+		return
+
+	def get_public_image_type(self, basedir):
+		gcp_regex = r"^\# /usr/bin/gcemetadata"
+		azure_regex = r"^\# /usr/bin/azuremetadata"
+		aws_regex = r"^\# /usr/bin/ec2metadata"
+		
+		meta_file = basedir + '/public_cloud/metadata.txt'
+		if os.path.isfile(meta_file):
+			with open(meta_file, 'r') as f:
+				contents = f.read()
+			if re.search(gcp_regex, contents, re.MULTILINE):
+				return 'google'
+			elif re.search(azure_regex, contents, re.MULTILINE):
+				return 'microsoft'
+			elif re.search(aws_regex, contents, re.MULTILINE):
+				return 'amazon'
+			else:
+				return 'unknown'
+		else:
+			return 'none'
+		
+	def process_public_cloud(self, basedir, image_type):
+		
+		meta_file = basedir + '/public_cloud/metadata.txt'
+		
+		match_active_images = []
+		match_inactive_images = []
+		match_deprecated_images = []
+		match_deleted_images = []
+		is_unsupported = False
+		name = ''
+		version = ''
+		license_type = ''
+		
+		if image_type == 'microsoft':
+		### Azure image test
+			with open(meta_file, 'r') as f:
+				metadata = yaml.safe_load(f)
+
+			query_image = metadata['compute']['storageProfile']['imageReference']
+			# if it's not an offer from the marketplace, return None
+			if query_image['offer'] is None:
+				is_unsupported = True
+				name = "None:None"
+				version = "None"
+			else:
+				query = query_image['publisher'].lower() + ':' + query_image['offer'] + ':' + query_image['sku']
+				name = query_image['offer'] + ':' + query_image['sku']
+				version = query_image['version']
+				if metadata['compute']['licenseType'] == 'SLES_BYOS':
+					license_type = 'BYOS'
+				else:
+					license_type = 'PAYG'
+					
+				regex_image = r"^(" + query + "):"
+				
+				for image in self.azure_image_data['active']:
+					if re.match(regex_image, image['urn']):
+						match_active_images.append(image)
+
+				for image in self.azure_image_data['inactive']:
+					if re.match(regex_image, image['urn']):
+						match_inactive_images.append(image)
+
+				for image in self.azure_image_data['deprecated']:
+					if re.match(regex_image, image['urn']):
+						match_deprecated_images.append(image)
+				
+		elif image_type == 'google':
+			### GCP image test
+			regex_image = r"^projects/(.*)/global/images/(.*)"
+			md_str = ''
+			with open(meta_file, 'r') as f:
+				contents = f.readlines()
+
+			for l in contents:
+				md_str = re.match(r"^image:(.*)$", l)
+				if md_str:
+					break
+			
+			query_project = re.match(regex_image, md_str.group(1).strip()).group(1)
+			query_image = re.match(regex_image, md_str.group(1).strip()).group(2)
+			name = query_project
+			version = query_image
+			
+			for image in self.gcp_image_data['active']:
+				if image['project'] == query_project and image['name'] == query_image:
+					match_active_images.append(image)
+				
+			for image in self.gcp_image_data['inactive']:
+				if image['project'] == query_project and image['name'] == query_image:
+					match_inactive_images.append(image)
+			
+			for image in self.gcp_image_data['deprecated']:
+				if image['project'] == query_project and image['name'] == query_image:
+					match_deprecated_images.append(image)
+	
+		elif image_type == 'amazon':
+			### Amazon image test
+			regex_image = r"^projects/(.*)/global/images/(.*)"
+			md_str = ''
+			with open(meta_file, 'r') as f:
+				contents = f.read()
+
+			md_str = re.search(r"^ami-id:(.*)$", contents, re.MULTILINE)
+			query_image = md_str.group(1).strip()
+			name = query_image
+		
+			for image in self.aws_image_data['active']:
+				if image['id'] == query_image:
+					match_active_images.append(image)
+
+			for image in self.aws_image_data['inactive']:
+				if image['id'] == query_image:
+					match_inactive_images.append(image)
+					
+			for image in self.aws_image_data['deprecated']:
+				if image['id'] == query_image:
+					match_deprecated_images.append(image)
+		
+		# make the final object     
+		match_data = {
+						'name':    name,
+						'version': version,
+						'active': match_active_images,
+						'inactive': match_inactive_images,
+						'deprecated': match_deprecated_images,
+						'deleted': match_deleted_images,
+						'license_type': license_type,
+						'unsupported': is_unsupported
+					}
+					
+		return match_data   
 
 if __name__ == "__main__":
 	main()
