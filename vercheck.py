@@ -21,8 +21,8 @@ import yaml
 ### main class that deals with command lines, reports and everything else
 class SCCVersion():
 
-	version = '2.0'
-	build = '20230817'
+	version = '2.1'
+	build = '20231030'
  
 	# static product list (taken from RMT and other sources)
 	# rmt-cli products list --name "SUSE Linux Enterprise Server" --all
@@ -1371,7 +1371,13 @@ def main():
 		elif o in ("-d", "--supportconfig"):
 			supportconfigdir = a
 			if (pc.analyze(supportconfigdir)):
-				pc.get_report()
+				print(f"--> Image ID is [{SCCVersion.color(pc.get_results()['name'], 'yellow')}]")
+				if pc.get_results()['unsupported']:
+					print(f"--> This image is {SCCVersion.color('UNSUPPORTED', 'red')} (not found in PINT data), continuing normal package analysis")
+					uptodate, unsupported, notfound, different, suseorphans, suseptf = sv.check_supportconfig(supportconfigdir)
+					sv.write_reports()
+				else:
+					pc.get_report()
 				exit(0)
 			else:
 				uptodate, unsupported, notfound, different, suseorphans, suseptf = sv.check_supportconfig(supportconfigdir)
@@ -1722,7 +1728,7 @@ class PublicCloudCheck():
   
 	def analyze(self, basedir):
 		self.provider = self.get_public_image_type(basedir)
-		print(f"--> Public cloud provider for {basedir} is [{self.provider}]")
+		print(f"--> Public cloud provider for {basedir} is [{SCCVersion.color(self.provider, 'yellow')}]")
 		if self.provider == "unknown":
 			print('--> this image has invalid (but present) public cloud metadata. Continuing normal analysis.')
 			return False
@@ -1802,7 +1808,6 @@ class PublicCloudCheck():
 			query_image = metadata['compute']['storageProfile']['imageReference']
 			# if it's not an offer from the marketplace, return None
 			if query_image['offer'] is None:
-				is_unsupported = True
 				name = "None:None"
 				version = "None"
 			else:
@@ -1856,6 +1861,7 @@ class PublicCloudCheck():
 			for image in self.gcp_image_data['deprecated']:
 				if image['project'] == query_project and image['name'] == query_image:
 					match_deprecated_images.append(image)
+
 	
 		elif image_type == 'amazon':
 			### Amazon image test
@@ -1880,6 +1886,10 @@ class PublicCloudCheck():
 				if image['id'] == query_image:
 					match_deprecated_images.append(image)
 		
+		# if it's not an offer from the marketplace, it's unsupported
+		if len(match_active_images) == 0 and len(match_inactive_images) == 0 and len(match_active_images) == 0:
+			is_unsupported = True
+
 		# make the final object     
 		match_data = {
 						'name':    name,
