@@ -15,7 +15,8 @@ Disclaimer: I'm a SUSE employee.
 
 Usage: 
 ```
-# ./vercheck.py [-l|--list-products] -p|--product product id -n|--name <package name> [-s|--short] [-v|--verbose] [-1|--show-unknown] [-2|--show-differences] [-3|--show-uptodate] [-4|--show-unsupported] [-5|--show-suseorphans] [-6|--show-suseptf] [-o|--outputdir] [-d|--supportconfig] [-f|--force-refresh] [-V|--version]
+# ./vercheck.py [-l|--list-products] -p|--product product id -n|--name <package name> [-s|--short] [-v|--verbose] [-1|--show-unknown] [-2|--show-differences] [-3|--show-uptodate] [-4|--show-unsupported] [-5|--show-suseorphans] [-6|--show-suseptf] [-o|--outputdir] [-d|--supportconfig] [-a|--arch] [-f|--force-refresh] [-V|--version]
+
 ```
 
 It uses compression, and a single urllib3 pool instance, to minimize the impact on the public server as much as possible. In order to speed things up, I open multiple threads and consume the RPM list slowly.
@@ -33,15 +34,17 @@ cached data for zypper is too old (-6 days), discarding cache entry
 removing record from cache: {'id': 21851832, 'name': 'zypper', 'arch': 'x86_64', 'version': '1.14.51', 'release': '3.52.1', 'products': [{'id': 2219, 'name': 'SUSE Linux Enterprise Server LTSS', 'identifier': 'SLES-LTSS/15.1/x86_64', 'type': 'extension', 'free': False, 'edition': '15 SP1', 'architecture': 'x86_64'}], 'timestamp': '2022-03-12T02:15:30.193223', 'repository': 'Basesystem Module 15 SP2 x86_6415 SP2x86_64', 'product_id': 1939}
 searching for zypper for product ID 1939 in SCC
 ```
-3) it also contains an internal table correlating each product to modules (taken from RMT). This is necessary in order to maintain cache consistency, as sometimes a suitable updated package resides in a different module repository, and we need to know what was the original product ID in order to return the correct cache entry.
+3) the same cache mechanism is implemented for Public Cloud images, using data from SUSE PINT (pint.suse.com). In this case, the information about active/inactive/deprecated/deleted images are kept for 7 days, and automatically refreshed upon running.
 
-4) there is an additional command-line option:
+4) it also contains an internal table correlating each product to modules (taken from RMT). This is necessary in order to maintain cache consistency, as sometimes a suitable updated package resides in a different module repository, and we need to know what was the original product ID in order to return the correct cache entry.
+
+5) there is an additional command-line option:
 ```
--f|--force-refresh              Ignore cached data and retrieve latest data from SCC
+-f|--force-refresh              Ignore cached data and retrieve latest data from SCC and public cloud info
 ```
 This ignores the cache and goes straight to SCC for the latest data (the results are added to the cache at the end for later use though).
 
-5) it's also heavily multi-threaded, and as such it has a way more complex data locking logic.
+6) it's also heavily multi-threaded, and as such it has a way more complex data locking logic.
 
 *IMPORTANT*: as we discovered through testing, running multiple parallel copies of this version may "lose" some of the recently refreshed cache entries. This limitation is by design. What happens is that in every session I read the cached entries to memory, then write it all at the end. Everything is changed in-memory. So, whoever runs last "wins". This is to avoid thousands of small disk writes, and possibly being called a "disk killer" :-)
 In the future I intend to implement a more robust cache backend (sqlite?) and address this. I might also merge it back to a single version of the script.
@@ -52,7 +55,7 @@ In the future I intend to implement a more robust cache backend (sqlite?) and ad
 * Listing supported products list (-l or --list):
 
 ```
-#  ./vercheck.py -l
+$  ./vercheck.py -l
 Known products list
 ID      Name
 -----------------------------------------------------
@@ -71,75 +74,89 @@ ID      Name
 1575    SUSE Linux Enterprise Server 15 x86_64
 1763    SUSE Linux Enterprise Server 15 SP1 x86_64
 1939    SUSE Linux Enterprise Server 15 SP2 x86_64
-1612    SUSE Linux Enterprise Server for SAP 15 x86_64
-1766    SUSE Linux Enterprise Server for SAP 15 SP1 x86_64
-1941    SUSE Linux Enterprise Server for SAP 15 SP2 x86_64
-total: 18 products.
+...
+
+As of Oct 2023, 103 products are supported.
 ``` 
 
 Note: SLE 11 and derivatives are not supported for queries by the API, even though there are valid product numbers for it.
 
-*  Checking for the latest version of the package "glibc" for product 1421 (SLES 12 SP3 x86_64), verbose mode:
+*  Checking for the latest version of the package "glibc" for product 2465 (SLES 15 SP5 x86_64), verbose mode:
 
 ```
-# ./vercheck.py -p 1421 -n glibc -v
-Using product ID 1421 (SUSE Linux Enterprise Server 12 SP3 x86_64)
-looking for glibc on product id 1421
-version 2.22-62.6.2 is available on repository [SUSE Linux Enterprise Server 12 SP3 x86_64]
-version 2.22-62.3.4 is available on repository [SUSE Linux Enterprise Server 12 SP3 x86_64]
-version 2.22-62.22.5 is available on repository [SUSE Linux Enterprise Server LTSS 12 SP3 x86_64]
-version 2.22-62.22.5 is available on repository [SUSE Linux Enterprise Point of Service Image Server 12 SP2 x86_64]
-version 2.22-62.22.5 is available on repository [SUSE Enterprise Storage 5 x86_64]
-version 2.22-62.22.5 is available on repository [SUSE OpenStack Cloud 8 x86_64]
-version 2.22-62.22.5 is available on repository [HPE Helion OpenStack 8 x86_64]
-version 2.22-62.22.5 is available on repository [SUSE Linux Enterprise Server BCL 12 SP3 x86_64]
-version 2.22-62.22.5 is available on repository [SUSE OpenStack Cloud Crowbar 8 x86_64]
-version 2.22-62.19.1 is available on repository [SUSE Linux Enterprise Point of Service Image Server 12 SP2 x86_64]
-version 2.22-62.19.1 is available on repository [SUSE Linux Enterprise Server 12 SP3 x86_64]
-version 2.22-62.16.2 is available on repository [SUSE Linux Enterprise Server 12 SP3 x86_64]
-version 2.22-62.13.2 is available on repository [SUSE Linux Enterprise Server 12 SP3 x86_64]
-version 2.22-62.13.2 is available on repository [SUSE Linux Enterprise Point of Service Image Server 12 SP2 x86_64]
-version 2.22-62.10.1 is available on repository [SUSE Linux Enterprise Server 12 SP3 x86_64]
-version 2.22-61.3 is available on repository [SUSE Linux Enterprise Server 12 SP3 x86_64]
-latest version for glibc is 2.22-62.22.5
+$ ./vercheck.py -p 2465 -n glibc -v
+Using product ID 2465 (SUSE Linux Enterprise Server 15 SP5 x86_64)
+searching for package "glibc" in product id "2465" (SUSE Linux Enterprise Server 15 SP5 x86_64)
+found glibc for product ID 2465 (cached)
+latest version for glibc on product ID 2465(SUSE Linux Enterprise Server 15 SP5 x86_64) is 2.31-150300.46.1, found on Basesystem Module (sle-module-basesystem/15.5/x86_64)
+version 2.31-150300.46.1 is available on repository [Basesystem Module 15 SP5 x86_64 15 SP5 x86_64]
+
 ```
 
 Note that it correctly treats second- and third-order release numbers, and sorts them accordingly to get the latest version.
 
 
-* Checking for the latest version of the package "glibc" for product 1421 (SLES 12 SP3 x86_64), short answer:
+* Checking for the latest version of the package "glibc" for product 2465 (SLES 15 SP5 x86_64), short answer:
 ```
-# ./vercheck.py -p 1421 -n glibc -s
-2.22-62.22.5
+$ ./vercheck.py -p 2465 -n glibc -s
+searching for package "glibc" in product id "2465" (SUSE Linux Enterprise Server 15 SP5 x86_64)
+searching for glibc for product ID 2465 in SCC
+2.31-150300.63.1
 
 ```
 
 * Analyzing a supportconfig
 ```
- ./vercheck.py -d ~/Documents/nts_dxl1lnxsl002_200616_1148 
-Analyzing supportconfig directory: /home/erico/Documents/nts_dxl1lnxsl002_200616_1148
-product name = SUSE Linux Enterprise Server 15 SP1 x86_64 (1763)
-found 498 total packages to check
-[1/498] BBbigfix-conf-x86: not found
-[2/498] BBcerts: not found
-[3/498] BBpkicerts: not found
-[4/498] BESAgent: not found
-[5/498] GeoIP: current version is 1.6.12-4.17 (latest: 1.6.12-6.3.1)
-[6/498] GeoIP-data: current version is 1.6.12-4.17 (latest: 1.6.12-6.3.1)
-[7/498] SUSEConnect: current version is 0.3.17-3.16.1 (latest: 0.3.22-7.9.1)
-[8/498] aaa_base: current version is 84.87+git20180409.04c9dae-3.9.1 (latest: 84.87+git20180409.04c9dae-3.39.1)
-[9/498] aaa_base-extras: current version is 84.87+git20180409.04c9dae-3.9.1 (latest: 84.87+git20180409.04c9dae-3.39.1)
-[10/498] apache2: current version is 2.4.33-3.18.2 (latest: 2.4.33-3.30.1)
+$ ./vercheck.py -d tests/SLE15SP5/scc_rmt_231027_1743
+loaded 2628 items from cache (/home/erico/.cache/scc-tools/scc_data.json)
+loaded 5 items from cache (/home/erico/.cache/scc-tools/public_cloud_amazon.json)
+* cached data OK (-4 days old)
+loaded 5 items from cache (/home/erico/.cache/scc-tools/public_cloud_google.json)
+* cached data OK (-4 days old)
+loaded 5 items from cache (/home/erico/.cache/scc-tools/public_cloud_microsoft.json)
+* cached data OK (-4 days old)
+--- AMAZON data as of 2023-10-27T17:24:07.180514
+* 1468 active images
+* 942 inactive images
+* 9060 deprecated images
+* 14763 deleted images
+
+--- MICROSOFT data as of 2023-10-27T17:24:07.180514
+* 187 active images
+* 147 inactive images
+* 548 deprecated images
+* 4543 deleted images
+
+--- GOOGLE data as of 2023-10-27T17:24:07.180514
+* 33 active images
+* 26 inactive images
+* 106 deprecated images
+* 708 deleted images
+
+--> Public cloud provider for tests/SLE15SP5/scc_rmt_231027_1743 is [none]
+--> not a public cloud image, continuing normal analysis
+Analyzing supportconfig directory: tests/SLE15SP5/scc_rmt_231027_1743
+product name = SUSE Linux Enterprise Server 15 SP5 x86_64 (id 2465, x86_64)
+found 986 total packages to check
+found Mesa-dri for product ID 2465 (cached)
+found Mesa for product ID 2465 (cached)
+found Mesa-gallium for product ID 2465 (cached)
+found Mesa-libEGL1 for product ID 2465 (cached)
+found Mesa-libGL1 for product ID 2465 (cached)
+found Mesa-libglapi0 for product ID 2465 (cached)
 ...
-[493/498] zypper: current version is 1.14.36-3.16.9 (latest: 1.14.37-3.19.1)
-[494/498] zypper-lifecycle-plugin: up-to-date (0.6.1490613702.a925823-2.43)
-[495/498] zypper-log: current version is 1.14.36-3.16.9 (latest: 1.14.37-3.19.1)
-[496/498] zypper-migration-plugin: current version is 0.12.1580220831.7102be8-6.4.1 (latest: 0.12.1590748670.86b0749-6.7.1)
-[497/498] zypper-needs-restarting: current version is 1.14.30-3.7.2 (latest: 1.14.37-3.19.1)
-[498/498] zypper-search-packages-plugin: up-to-date (0.7-5.35)
-up-to-date:249 packages
-not found:6 packages
-different:243 packages
+thread search-yast2-ycp-ui-bindings is done
+thread search-zisofs-tools is done
+thread search-zstd is done
+thread search-zypper is done
+thread search-zypper-lifecycle-plugin is done
+thread search-zypper-log is done
+thread search-zypper-needs-restarting is done
+
+Done.
+writing CSV reports to /home/erico/Projetos/scc-tools
+
+
 ```
 
 This option analyzes a previously extracted supportconfig report. It will find the installed RPMs in the report, and run
@@ -152,3 +169,11 @@ An output directory can be specified by adding the "-o" (or --outputdir) paramet
 ```
  ./vercheck.py -o /tmp/reports -d ~/Documents/nts_dxl1lnxsl002_200616_1148 
 ```
+
+* Final considerations
+
+This utility only uses public resources maintained by SUSE LLC, no logins are necessary.
+I make no guarantees on availability or speed.
+I try to make sure that the information mined by vercheck is as accurate as possible, but errors can occur. 
+
+If you find a bug or inconsistency, please open an issue!
