@@ -758,7 +758,7 @@ class SCCVersion():
 		return
 
 	def usage(self):
-		print('Usage: ' + sys.argv[0] + ' [-l|--list-products] -p|--product product id -n|--name <package name> [-s|--short] [-v|--verbose] [-1|--show-unknown] [-2|--show-differences] [-3|--show-uptodate] [-4|--show-unsupported] [-5|--show-suseorphans] [-6|--show-suseptf] [-o|--outputdir] [-d|--supportconfig] [-a|--arch] [-f|--force-refresh] [-V|--version]')
+		print('Usage: ' + sys.argv[0] + ' [-l|--list-products] -p|--product product id -n|--name <package name> [-s|--short] [-v|--verbose] [-1|--show-unknown] [-2|--show-differences] [-3|--show-uptodate] [-4|--show-unsupported] [-5|--show-suseorphans] [-6|--show-suseptf] [-o|--outputdir] [-d|--supportconfig] [-a|--arch <architecture>] [-f|--force-refresh] [-V|--version]')
 		return
 
 	def show_version(self):
@@ -774,14 +774,14 @@ class SCCVersion():
 		print('-s|--short\t\t\tOnly outputs the latest version, useful for scripts')
 		print('-v|--verbose\t\t\tOutputs extra information about the search and results')
 		print('-1|--show-unknown\t\tshows unknown packages as they are found.')
-		print('-2|--show-differences)\t\tshows packages that have updates available as they are found.')
-		print('-3|--show-uptodate)\t\tshows packages that are on par with the updated versions as they are found.')
-		print('-4|--show-unsupported)\t\tshows packages that have a vendor that is different from the system it was collected from.')
-		print('-5|--show-suseorphans)\t\tshows packages that are from SUSE, but are now orphans (e.g. from different OS/product versions).')
-		print('-6|--show-suseptf)\t\tshows SUSE-made PTF (Program Temporary Fix) packages.')
-		print('-o|--outputdir)\t\t\tspecify an output directory for the reports. Default: current directory.')
+		print('-2|--show-differences\t\tshows packages that have updates available as they are found.')
+		print('-3|--show-uptodate\t\tshows packages that are on par with the updated versions as they are found.')
+		print('-4|--show-unsupported\t\tshows packages that have a vendor that is different from the system it was collected from.')
+		print('-5|--show-suseorphans\t\tshows packages that are from SUSE, but are now orphans (e.g. from different OS/product versions).')
+		print('-6|--show-suseptf\t\tshows SUSE-made PTF (Program Temporary Fix) packages.')
+		print('-o|--outputdir\t\t\tspecify an output directory for the reports. Default: current directory.')
 		print('-d|--supportconfig\t\tAnalyzes a supportconfig directory and generates CSV reports for all packages described by types 1-6.')
-		print('-a|--arch\t\t\tSupply an architecture for the supportconfig analysis.')
+		print('-a|--arch <architecture>\t\t\tSupply an architecture for the supportconfig analysis.')
 		print('-f|--force-refresh\t\tIgnore cached data and retrieve latest data from SCC and public cloud info')
 		print('-V|--version\t\t\tShow program version')
 		print('\n')
