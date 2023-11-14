@@ -1375,7 +1375,6 @@ class PackageSearchEngine(Thread):
 # main program
 def main():
     sv = SCCVersion()
-    pc = PublicCloudCheck()
     signal.signal(signal.SIGINT, sv.cleanup)
 
     try:
@@ -1433,6 +1432,7 @@ def main():
             exit(0)
         elif o in ("-d", "--supportconfig"):
             supportconfigdir = a
+            pc = PublicCloudCheck()
             if (pc.analyze(supportconfigdir)):
                 print(
                     f"--> Image ID is [{SCCVersion.color(pc.get_results()['name'], 'yellow')}]")
