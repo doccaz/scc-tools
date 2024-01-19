@@ -26,8 +26,8 @@ import yaml
 
 class SCCVersion():
 
-    version = '2.1'
-    build = '20231031'
+    version = '2.2'
+    build = '20231114'
 
     # static product list (taken from RMT and other sources)
     # rmt-cli products list --name "SUSE Linux Enterprise Server" --all
