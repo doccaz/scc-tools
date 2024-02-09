@@ -27,7 +27,7 @@ import yaml
 class SCCVersion():
 
     version = '2.2'
-    build = '20231114'
+    build = '20240209'
 
     # static product list (taken from RMT and other sources)
     # rmt-cli products list --name "SUSE Linux Enterprise Server" --all
@@ -1673,14 +1673,18 @@ class PublicImageCacheManager():
                 print(f'* cached data OK ({age.days} days old)')
             else:
                 print(f'* cached data for {provider} is too old, downloading')
-                self.cache_data = self.get_image_states(provider)
-                with open(self.active_cache_file, 'w') as f:
-                    f.write(json.dumps(self.cache_data))
+                tmp_cache_data = self.get_image_states(provider)
+                if len(tmp_cache_data) > 0:
+                    self.cache_data = tmp_cache_data
+                    with open(self.active_cache_file, 'w') as f:
+                        f.write(json.dumps(self.cache_data))
         else:
             print(f'* cached data for {provider} does not exist, downloading')
-            self.cache_data = self.get_image_states(provider)
-            with open(self.active_cache_file, 'w') as f:
-                f.write(json.dumps(self.cache_data))
+            tmp_cache_data = self.get_image_states(provider)
+            if len(tmp_cache_data) > 0:
+                self.cache_data = tmp_cache_data
+                with open(self.active_cache_file, 'w') as f:
+                    f.write(json.dumps(self.cache_data))
 
         self.initialized = True
         return
@@ -1721,16 +1725,17 @@ class PublicImageCacheManager():
         http = urllib3.PoolManager(maxsize=5)
 
         # maximum retries for each thread
-        max_tries = 5
+        max_tries = 1
         tries = 0
 
         valid_response = False
-
+        connection_failed = False
+        
         # server replies which are temporary errors (and can be retried)
         retry_states = [429, 502, 504]
 
         # server replies which are permanent errors (and cannot be retried)
-        error_states = [400, 403, 404, 422, 500]
+        error_states = [400, 403, 404, 422, 500, -1]
 
         base_url = "https://susepubliccloudinfo.suse.com/v1/" + \
             provider + "/images/" + list_type + ".json"
@@ -1741,11 +1746,14 @@ class PublicImageCacheManager():
                                  'Accept-Encoding': 'gzip, deflate', 'Connection': 'close'})
             except Exception as e:
                 print('Error while connecting: ' + str(e))
-                exit(1)
-
+                connection_failed = True
+                
             return_data = {}
 
-            if r.status == 200:
+            if connection_failed:
+                print('It appears the server is offline, giving up.')
+                break
+            elif r.status == 200:
                 if tries > 0:
                     print('got a good reply after %d tries' % (tries))
                 return_data = json.loads(r.data.decode('utf-8'))
@@ -1766,16 +1774,32 @@ class PublicImageCacheManager():
             else:
                 print('got unknown error %d from the server!' % r.status)
 
-        return return_data['images']
+            if valid_response:
+                return return_data['images']
+            
+        return {}
 
-    def get_image_states(self, provider):
+    def  get_image_states(self, provider):
         image_data = {}
-        image_data['timestamp'] = datetime.now().isoformat()
         image_data['active'] = self.fetch_image_states(provider, 'active')
+        if len(image_data['active']) == 0:
+            print('cannot download cloud data at the moment, will use cached data.')
+            return {}
         image_data['inactive'] = self.fetch_image_states(provider, 'inactive')
+        if len(image_data['inactive']) == 0:
+            print('cannot download cloud data at the moment, will use cached data.')
+            return {}
         image_data['deprecated'] = self.fetch_image_states(
             provider, 'deprecated')
+        if len(image_data['deprecated']) == 0:
+            print('cannot download cloud data at the moment, will use cached data.')
+            return {}
         image_data['deleted'] = self.fetch_image_states(provider, 'deleted')
+        if len(image_data['deleted']) == 0:
+            print('cannot download cloud data at the moment, will use cached data.')
+            return {}
+        
+        image_data['timestamp'] = datetime.now().isoformat()
         return image_data
 
 
