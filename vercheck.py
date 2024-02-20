@@ -27,7 +27,7 @@ import yaml
 class SCCVersion():
 
     version = '2.2'
-    build = '20240209'
+    build = '20240220'
 
     # static product list (taken from RMT and other sources)
     # rmt-cli products list --name "SUSE Linux Enterprise Server" --all
@@ -1432,7 +1432,10 @@ def main():
             exit(0)
         elif o in ("-d", "--supportconfig"):
             supportconfigdir = a
-            pc = PublicCloudCheck()
+            if os.path.isdir(a) is False:
+                print(f"Directory {a} does not exist.\nIf you're using multiple options in one parameter, make sure -d is the last one (e.g. -vd <directory),\nor use it separately (-v -d <directory>)")
+                exit(1)
+            pc = PublicCloudCheck(force_refresh=sv.force_refresh)
             if (pc.analyze(supportconfigdir)):
                 print(
                     f"--> Image ID is [{SCCVersion.color(pc.get_results()['name'], 'yellow')}]")
@@ -1652,8 +1655,9 @@ class PublicImageCacheManager():
     provider = ''
     cache_file = ''
     initialized = False
+    failed = False
 
-    def __init__(self, provider):
+    def __init__(self, provider, force_refresh=False):
         self.provider = provider
         self.cache_file = 'public_cloud_' + provider + '.json'
 
@@ -1667,17 +1671,16 @@ class PublicImageCacheManager():
                 os.makedirs(self.user_cache_dir)
 
         if self.load_cache():
-            age = datetime.strptime(
-                self.cache_data['timestamp'], "%Y-%m-%dT%H:%M:%S.%f") - datetime.now()
-            if age.days > self.get_max_age():
-                print(f'* cached data OK ({age.days} days old)')
-            else:
-                print(f'* cached data for {provider} is too old, downloading')
+            age = datetime.strptime(self.cache_data['timestamp'], "%Y-%m-%dT%H:%M:%S.%f") - datetime.now()
+            if force_refresh or age.days < self.get_max_age():
+                print(f'* forcing metadata refresh for public images for {provider}')
                 tmp_cache_data = self.get_image_states(provider)
                 if len(tmp_cache_data) > 0:
                     self.cache_data = tmp_cache_data
                     with open(self.active_cache_file, 'w') as f:
                         f.write(json.dumps(self.cache_data))
+            else:
+                print(f'* public images cached data OK ({age.days} days old)')
         else:
             print(f'* cached data for {provider} does not exist, downloading')
             tmp_cache_data = self.get_image_states(provider)
@@ -1725,7 +1728,7 @@ class PublicImageCacheManager():
         http = urllib3.PoolManager(maxsize=5)
 
         # maximum retries for each thread
-        max_tries = 1
+        max_tries = 3
         tries = 0
 
         valid_response = False
@@ -1747,8 +1750,6 @@ class PublicImageCacheManager():
             except Exception as e:
                 print('Error while connecting: ' + str(e))
                 connection_failed = True
-                
-            return_data = {}
 
             if connection_failed:
                 print('It appears the server is offline, giving up.')
@@ -1766,40 +1767,48 @@ class PublicImageCacheManager():
                 print('got a fatal error (%d). Results will be incomplete!\nPlease contact the service administrators or try again later.' % (r.status))
                 break
             elif r.status in retry_states:
-                print(
-                    'got non-fatal reply (%d) from server, trying again in 5 seconds ' % (r.status))
-                time.sleep(5)
                 tries = tries + 1
+                print(
+                    'got non-fatal reply (%d) from server, trying again in 5 seconds (try: %d/%d)' % (r.status, tries, max_tries))
+                time.sleep(5)
                 continue
             else:
                 print('got unknown error %d from the server!' % r.status)
 
             if valid_response:
                 return return_data['images']
-            
+
         return {}
 
-    def  get_image_states(self, provider):
+    def get_image_states(self, provider):
         image_data = {}
+        self.failed = False
+        image_data['timestamp'] = datetime.now().isoformat()
+        image_data['incomplete'] = False
         image_data['active'] = self.fetch_image_states(provider, 'active')
         if len(image_data['active']) == 0:
-            print('cannot download cloud data at the moment, will use cached data.')
-            return {}
+            print('cannot download cloud data for active images at the moment, will use cached data if available.')
+            self.failed = True
+
         image_data['inactive'] = self.fetch_image_states(provider, 'inactive')
         if len(image_data['inactive']) == 0:
-            print('cannot download cloud data at the moment, will use cached data.')
-            return {}
+            print('cannot download cloud data for inactive images at the moment, will use cached data if available.')
+            self.failed = True
+
         image_data['deprecated'] = self.fetch_image_states(
             provider, 'deprecated')
         if len(image_data['deprecated']) == 0:
-            print('cannot download cloud data at the moment, will use cached data.')
-            return {}
+            print('cannot download cloud data for deprecated images at the moment, will use cached data if available.')
+            self.failed = True
+
         image_data['deleted'] = self.fetch_image_states(provider, 'deleted')
         if len(image_data['deleted']) == 0:
-            print('cannot download cloud data at the moment, will use cached data.')
-            return {}
-        
-        image_data['timestamp'] = datetime.now().isoformat()
+            print('cannot download cloud data for deleted images at the moment, will use cached data if available.')
+            self.failed = True
+
+        if self.failed:
+            image_data['incomplete'] = True
+
         return image_data
 
 
@@ -1813,26 +1822,33 @@ class PublicCloudCheck():
     azure_cm = None
     gcp_cm = None
 
-    def __init__(self, verbose=True):
+    def __init__(self, verbose=True, force_refresh=False):
         self.match_data = {}
-        self.aws_cm = PublicImageCacheManager(provider='amazon')
-        self.gcp_cm = PublicImageCacheManager(provider='google')
-        self.azure_cm = PublicImageCacheManager(provider='microsoft')
+        self.aws_cm = PublicImageCacheManager(provider='amazon', force_refresh=force_refresh)
+        self.gcp_cm = PublicImageCacheManager(provider='google', force_refresh=force_refresh)
+        self.azure_cm = PublicImageCacheManager(provider='microsoft', force_refresh=force_refresh)
         self.aws_image_data = self.aws_cm.get_cache_data()
         self.gcp_image_data = self.gcp_cm.get_cache_data()
         self.azure_image_data = self.azure_cm.get_cache_data()
-
         if verbose:
             print(f"--- AMAZON data as of {self.aws_image_data['timestamp']}")
+            if 'incomplete' in self.aws_image_data and self.aws_image_data['incomplete']:
+                print("*** data may be incomplete (previous failure downloading)")
             for state in self.valid_states:
                 print(f"* {len(self.aws_image_data[state])} {state} images")
             print()
             print(
-                f"--- MICROSOFT data as of {self.aws_image_data['timestamp']}")
+                f"--- MICROSOFT data as of {self.azure_image_data['timestamp']}")
+            if 'incomplete' in self.azure_image_data and self.azure_image_data['incomplete']:
+                print("*** data may be incomplete (previous failure downloading)")
+
             for state in self.valid_states:
                 print(f"* {len(self.azure_image_data[state])} {state} images")
             print()
-            print(f"--- GOOGLE data as of {self.aws_image_data['timestamp']}")
+            print(f"--- GOOGLE data as of {self.gcp_image_data['timestamp']}")
+            if 'incomplete' in self.gcp_image_data and self.gcp_image_data['incomplete']:
+                print("*** data may be incomplete (previous failure downloading)")
+
             for state in self.valid_states:
                 print(f"* {len(self.gcp_image_data[state])} {state} images")
             print()
