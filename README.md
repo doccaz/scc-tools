@@ -4,6 +4,7 @@ A set of simple tools to interact with SUSE Customer Center (SCC).
 
 It basically uses the APIs available at https://scc.suse.com/api/package_search/v4/documentation
 
+[![build result](https://build.opensuse.org/projects/home:emendonca/packages/scc-tools/badge.svg?type=default)](https://build.opensuse.org/package/show/home:emendonca/scc-tools)
 
 ## vercheck
 
