@@ -14,6 +14,8 @@ It started as a pet project to do a simple package search with the API, but it e
 
 Disclaimer: I'm a SUSE employee.
 
+Dependencies: this utility depends on urllib3 and pyaml. It also uses zypper as a last-resort mechanism to verify versions.
+
 Usage: 
 ```
 # ./vercheck.py [-l|--list-products] -p|--product product id -n|--name <package name> [-s|--short] [-v|--verbose] [-1|--show-unknown] [-2|--show-differences] [-3|--show-uptodate] [-4|--show-unsupported] [-5|--show-suseorphans] [-6|--show-suseptf] [-o|--outputdir] [-d|--supportconfig] [-a|--arch] [-f|--force-refresh] [-V|--version]
