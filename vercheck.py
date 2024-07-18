@@ -3,31 +3,32 @@ import re
 import sys
 import os
 import time
-from threading import Thread, Lock, active_count
-from contextlib import contextmanager
-import urllib3
-import urllib
-import json
-import getopt
-import signal
-from distutils.version import LooseVersion
 import subprocess
-from datetime import datetime
-# import socket
-# from urllib3.connection import HTTPConnection
+import signal
+import getopt
 import pdb
 import weakref
 import warnings
+import json
+import urllib
+from datetime import datetime
+from threading import Thread, Lock, active_count
+from contextlib import contextmanager
+from distutils.version import LooseVersion
 
-import yaml
+# external libraries
+try:
+    import urllib3
+    import yaml
+except ImportError as e:
+    print(f"Please verify that you have the required Python library installed: {e}")
+    exit(1)
 
 # main class that deals with command lines, reports and everything else
-
-
 class SCCVersion():
 
-    version = '2.2'
-    build = '20240220'
+    version = '2.3'
+    build = '20240718'
 
     # static product list (taken from RMT and other sources)
     # rmt-cli products list --name "SUSE Linux Enterprise Server" --all
@@ -61,6 +62,7 @@ class SCCVersion():
         1876: {'name': 'SUSE Linux Enterprise Server 12 SP5 ppc64le', 'arch': 'ppc64le', 'identifier': 'cpe:/o:suse:sles:12:sp5'},
         1877: {'name': 'SUSE Linux Enterprise Server 12 SP5 s390x', 'arch': 's390x', 'identifier': 'cpe:/o:suse:sles:12:sp5'},
         1878: {'name': 'SUSE Linux Enterprise Server 12 SP5 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:suse:sles:12:sp5'},
+
         1319: {'name': 'SUSE Linux Enterprise Server for SAP Applications 12 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:suse:sles_sap:12'},
         1346: {'name': 'SUSE Linux Enterprise Server for SAP Applications 12 SP1 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:suse:sles_sap:12:sp1'},
         1414: {'name': 'SUSE Linux Enterprise Server for SAP Applications 12 SP2 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:suse:sles_sap:12:sp2'},
@@ -83,7 +85,6 @@ class SCCVersion():
         2293: {'name': 'SUSE Linux Enterprise Server for SAP Applications 15 SP4 ppc64le', 'arch': 'ppc64le', 'identifier': 'cpe:/o:suse:sles_sap:15:sp4'},
         2294: {'name': 'SUSE Linux Enterprise Server for SAP Applications 15 SP4 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:suse:sles_sap:15:sp4'},
         2467: {'name': 'SUSE Linux Enterprise Server for SAP Applications 15 SP5 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:suse:sles_sap:15:sp5'},
-
         2611: {'name': 'SUSE Linux Enterprise Server for SAP Applications 15 SP6 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:suse:sles_sap:15:sp6'},
 
         1575: {'name': 'SUSE Linux Enterprise Server 15 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:suse:sles:15'},
@@ -91,26 +92,31 @@ class SCCVersion():
         1585: {'name': 'SUSE Linux Enterprise Server 15 ppc64le', 'arch': 'ppc64le', 'identifier': 'cpe:/o:suse:sles:15'},
         1586: {'name': 'SUSE Linux Enterprise Server 15 aarch64', 'arch': 'aarch64', 'identifier': 'cpe:/o:suse:sles:15'},
         1609: {'name': 'SUSE Linux Enterprise Desktop 15 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:suse:sled:15'},
+
         1760: {'name': 'SUSE Linux Enterprise Server 15 SP1 aarch64', 'arch': 'aarch64', 'identifier': 'cpe:/o:suse:sles:15:sp1'},
         1761: {'name': 'SUSE Linux Enterprise Server 15 SP1 ppc64le', 'arch': 'ppc64le', 'identifier': 'cpe:/o:suse:sles:15:sp1'},
         1762: {'name': 'SUSE Linux Enterprise Server 15 SP1 s390x', 'arch': 's390x', 'identifier': 'cpe:/o:suse:sles:15:sp1'},
         1763: {'name': 'SUSE Linux Enterprise Server 15 SP1 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:suse:sles:15:sp1'},
         1764: {'name': 'SUSE Linux Enterprise Desktop 15 SP1 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:suse:sled:15:sp1'},
+
         1936: {'name': 'SUSE Linux Enterprise Server 15 SP2 aarch64', 'arch': 'aarch64', 'identifier': 'cpe:/o:suse:sles:15:sp2'},
         1937: {'name': 'SUSE Linux Enterprise Server 15 SP2 ppc64le', 'arch': 'ppc64le', 'identifier': 'cpe:/o:suse:sles:15:sp2'},
         1938: {'name': 'SUSE Linux Enterprise Server 15 SP2 s390x', 'arch': 's390x', 'identifier': 'cpe:/o:suse:sles:15:sp2'},
         1939: {'name': 'SUSE Linux Enterprise Server 15 SP2 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:suse:sles:15:sp2'},
         1935: {'name': 'SUSE Linux Enterprise Desktop 15 SP2 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:suse:sled:15:sp2'},
+
         2137: {'name': 'SUSE Linux Enterprise Server 15 SP3 aarch64', 'arch': 'aarch64', 'identifier': 'cpe:/o:suse:sles:15:sp3'},
         2138: {'name': 'SUSE Linux Enterprise Server 15 SP3 ppc64le', 'arch': 'ppc64le', 'identifier': 'cpe:/o:suse:sles:15:sp3'},
         2139: {'name': 'SUSE Linux Enterprise Server 15 SP3 s390x', 'arch': 's390x', 'identifier': 'cpe:/o:suse:sles:15:sp3'},
         2140: {'name': 'SUSE Linux Enterprise Server 15 SP3 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:suse:sles:15:sp3'},
         2134: {'name': 'SUSE Linux Enterprise Desktop 15 SP3 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:suse:sled:15:sp3'},
+
         2289: {'name': 'SUSE Linux Enterprise Server 15 SP4 aarch64', 'arch': 'aarch64', 'identifier': 'cpe:/o:suse:sles:15:sp4'},
         2290: {'name': 'SUSE Linux Enterprise Server 15 SP4 ppc64le', 'arch': 'ppc64le', 'identifier': 'cpe:/o:suse:sles:15:sp4'},
         2291: {'name': 'SUSE Linux Enterprise Server 15 SP4 s390x', 'arch': 's390x', 'identifier': 'cpe:/o:suse:sles:15:sp4'},
         2292: {'name': 'SUSE Linux Enterprise Server 15 SP4 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:suse:sles:15:sp4'},
         2295: {'name': 'SUSE Linux Enterprise Desktop 15 SP4 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:suse:sled:15:sp4'},
+
         2462: {'name': 'SUSE Linux Enterprise Server 15 SP5 aarch64', 'arch': 'aarch64', 'identifier': 'cpe:/o:suse:sles:15:sp5'},
         2463: {'name': 'SUSE Linux Enterprise Server 15 SP5 ppc64le', 'arch': 'ppc64le', 'identifier': 'cpe:/o:suse:sles:15:sp5'},
         2464: {'name': 'SUSE Linux Enterprise Server 15 SP5 s390x', 'arch': 's390x', 'identifier': 'cpe:/o:suse:sles:15:sp5'},
@@ -121,14 +127,27 @@ class SCCVersion():
         2607: {'name': 'SUSE Linux Enterprise Server 15 SP6 ppc64le', 'arch': 'ppc64le', 'identifier': 'cpe:/o:suse:sles:15:sp6'},
         2608: {'name': 'SUSE Linux Enterprise Server 15 SP6 s390x', 'arch': 's390x', 'identifier': 'cpe:/o:suse:sles:15:sp6'},
         2609: {'name': 'SUSE Linux Enterprise Server 15 SP6 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:suse:sles:15:sp6'},
-        2612: {'name': 'SUSE Linux Enterprise Desktop 15 SP6 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:suse:sled:15:sp6'},
-
+        
+        2202: {'name': 'SUSE Linux Enterprise Micro 5.0 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:suse:sle-micro:5.0'},
+        2283: {'name': 'SUSE Linux Enterprise Micro 5.1 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:suse:sle-micro:5.1'},
+        2287: {'name': 'SUSE Linux Enterprise Micro 5.1 s390x', 'arch': 's390x', 'identifier': 'cpe:/o:suse:sle-micro:5.1'},
+        2400: {'name': 'SUSE Linux Enterprise Micro 5.2 s390x', 'arch': 's390x', 'identifier': 'cpe:/o:suse:sle-micro:5.2'},
+        2401: {'name': 'SUSE Linux Enterprise Micro 5.2 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:suse:sle-micro:5.2'},
+        2427: {'name': 'SUSE Linux Enterprise Micro 5.3 s390x', 'arch': 's390x', 'identifier': 'cpe:/o:suse:sle-micro:5.3'},
+        2428: {'name': 'SUSE Linux Enterprise Micro 5.3 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:suse:sle-micro:5.3'},
+        2573: {'name': 'SUSE Linux Enterprise Micro 5.4 s390x', 'arch': 's390x', 'identifier': 'cpe:/o:suse:sle-micro:5.4'},
+        2574: {'name': 'SUSE Linux Enterprise Micro 5.4 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:suse:sle-micro:5.4'},
+        2605: {'name': 'SUSE Linux Enterprise Micro 5.5 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:suse:sle-micro:5.5'},
+        2699: {'name': 'SUSE Linux Micro 6.0 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:suse:sle-micro:6.0'},
+            
         1929: {'name': 'openSUSE Leap 15.1 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:opensuse:leap:15.1'},
         2001: {'name': 'openSUSE Leap 15.2 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:opensuse:leap:15.2'},
+
         2233: {'name': 'openSUSE Leap 15.3 aarch64', 'arch': 'aarch64', 'identifier': 'cpe:/o:opensuse:leap:15.3'},
         2234: {'name': 'openSUSE Leap 15.3 ppc64le', 'arch': 'ppc64le', 'identifier': 'cpe:/o:opensuse:leap:15.3'},
         2235: {'name': 'openSUSE Leap 15.3 s390x', 'arch': 's390x', 'identifier': 'cpe:/o:opensuse:leap:15.3'},
         2236: {'name': 'openSUSE Leap 15.3 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:opensuse:leap:15.3'},
+
         2406: {'name': 'openSUSE Leap 15.4 aarch64', 'arch': 'aarch64', 'identifier': 'cpe:/o:opensuse:leap:15.4'},
         2407: {'name': 'openSUSE Leap 15.4 ppc64le', 'arch': 'ppc64le', 'identifier': 'cpe:/o:opensuse:leap:15.4'},
         2408: {'name': 'openSUSE Leap 15.4 s390x', 'arch': 's390x', 'identifier': 'cpe:/o:opensuse:leap:15.4'},
@@ -138,10 +157,14 @@ class SCCVersion():
         2586: {'name': 'openSUSE Leap 15.5 ppc64le', 'arch': 'ppc64le', 'identifier': 'cpe:/o:opensuse:leap:15.5'},
         2587: {'name': 'openSUSE Leap 15.5 s390x', 'arch': 's390x', 'identifier': 'cpe:/o:opensuse:leap:15.5'},
         2588: {'name': 'openSUSE Leap 15.5 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:opensuse:leap:15.5'},
-
+        
+        2731: {'name': 'openSUSE Leap 15.6 aarch64', 'arch': 'aarch64', 'identifier': 'cpe:/o:opensuse:leap:15.6'},
+        2732: {'name': 'openSUSE Leap 15.6 ppc64le', 'arch': 'ppc64le', 'identifier': 'cpe:/o:opensuse:leap:15.6'},
+        2733: {'name': 'openSUSE Leap 15.6 s390x', 'arch': 's390x', 'identifier': 'cpe:/o:opensuse:leap:15.6'},
+        2734: {'name': 'openSUSE Leap 15.6 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:opensuse:leap:15.6'},
+        
         2520: {'name': 'openSUSE Leap Micro 5.2 aarch64', 'arch': 'aarch64', 'identifier': 'cpe:/o:opensuse:leap-micro:5.2'},
         2521: {'name': 'openSUSE Leap Micro 5.2 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:opensuse:leap-micro:5.2'},
-
         2563: {'name': 'openSUSE Leap Micro 5.3 aarch64', 'arch': 'aarch64', 'identifier': 'cpe:/o:opensuse:leap-micro:5.3'},
         2564: {'name': 'openSUSE Leap Micro 5.3 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:opensuse:leap-micro:5.3'},
     }
@@ -521,6 +544,8 @@ class SCCVersion():
         2645: {'name': 'Web and Scripting Module 15 SP6 s390x', 'edition': '15 SP6', 'architecture': 's390x', 'products': [2608]},
 
         2618: {'name': 'Basesystem Module 15 SP6 x86_64', 'edition': '15 SP6', 'architecture': 'x86_64', 'products': [2612, 2631, 2614, 2609, 2611, 2661]},
+        2726: {'name': 'Certifications Module 15 SP6 x86_64', 'edition': '15 SP6', 'architecture': 'x86_64', 'products': [2612, 2631, 2614, 2609, 2611, 2661]},
+        2760: {'name': 'Confidential Computing Module 15 SP6 x86_64', 'edition': '15 SP6', 'architecture': 'x86_64', 'products': [2612, 2631, 2614, 2609, 2611, 2661]},
         2637: {'name': 'Containers Module 15 SP6 x86_64', 'edition': '15 SP6', 'architecture': 'x86_64', 'products': [2612, 2631, 2614, 2609, 2611, 2661]},
         2622: {'name': 'Desktop Applications Module 15 SP6 x86_64', 'edition': '15 SP6', 'architecture': 'x86_64', 'products': [2612, 2631, 2614, 2609, 2611, 2661]},
         2641: {'name': 'Development Tools Module 15 SP6 x86_64', 'edition': '15 SP6', 'architecture': 'x86_64', 'products': [2612, 2631, 2614, 2609, 2611, 2661]},
@@ -528,7 +553,7 @@ class SCCVersion():
         2652: {'name': 'Legacy Module 15 SP6 x86_64', 'edition': '15 SP6', 'architecture': 'x86_64', 'products': [2612, 2631, 2614, 2609, 2611, 2661]},
         2656: {'name': 'Public Cloud Module 15 SP6 x86_64', 'edition': '15 SP6', 'architecture': 'x86_64', 'products': [2612, 2631, 2614, 2609, 2611, 2661]},
         2683: {'name': 'Python 3 Module 15 SP6 x86_64', 'edition': '15 SP6', 'architecture': 'x86_64', 'products': [2612, 2631, 2614, 2609, 2611, 2661]},
-        2633: {'name': 'SAP Applications Module 15 SP6 x86_64', 'edition': '15 SP6', 'architecture': 'x86_64', 'products': [2612, 2631, 2614, 2609, 2611, 2661]},
+        2727: {'name': 'SAP Business One Module 15 SP6 x86_64', 'edition': '15 SP6', 'architecture': 'x86_64', 'products': [2612, 2631, 2614, 2609, 2611, 2661]},
         2626: {'name': 'Server Applications Module 15 SP6 x86_64', 'edition': '15 SP6', 'architecture': 'x86_64', 'products': [2612, 2631, 2614, 2609, 2611, 2661]},
         2664: {'name': 'Live Patching 15 SP6 x86_64', 'edition': '15 SP6', 'architecture': 'x86_64', 'products': [2612, 2631, 2614, 2609, 2611, 2661]},
         2687: {'name': 'SUSE Package Hub 15 SP6 x86_64', 'edition': '15 SP6', 'architecture': 'x86_64', 'products': [2612, 2631, 2614, 2609, 2611, 2661]},
@@ -544,6 +569,7 @@ class SCCVersion():
         2012: {'name': 'SUSE Manager Server 4.1', 'identifier': '4.1'},
         2222: {'name': 'SUSE Manager Server 4.2', 'identifier': '4.2'},
         2378: {'name': 'SUSE Manager Server 4.3', 'identifier': '4.3'},
+        2718: {'name': 'SUSE Manager Server 5.0', 'identifier': '5.0'},
     }
 
     # result lists
@@ -572,7 +598,7 @@ class SCCVersion():
     max_threads = 35
 
     # time to wait before starting each chunk of threads
-    wait_time = 10
+    wait_time = 5
 
     # override architecture
     arch = None
@@ -990,9 +1016,13 @@ class SCCVersion():
                 # print('refined data = ' + str(refined_data))
                 try:
                     target = self.product_list[match_os]
-                    ver_regex = r"cpe:/o:suse:(sles|sled|sles_sap):(\d+)"
-                    target_version = 'SUSE Linux Enterprise ' + \
-                        re.match(ver_regex, target['identifier']).group(2)
+                    ver_regex = r"cpe:/o:suse:(sle-micro|sles|sled|sles_sap):(\d+)"
+                    if ('suse:sle-micro' in str(target['identifier'])):
+                        target_version = 'SUSE Linux Enterprise 15'
+                    else:
+                        target_version = 'SUSE Linux Enterprise ' + \
+                            re.match(ver_regex, target['identifier']).group(2)
+
                     # print("package does not exist, target_version is " + target_version)
                     # print("supplied distro for package " + str(refined_data['query']) + ' is ' + str(refined_data['supplied_distro']))
                     # print("target identifier is " + target_version)
