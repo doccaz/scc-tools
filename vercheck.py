@@ -1309,9 +1309,7 @@ class PackageSearchEngine(Thread):
                         cached = True
                         if age.days > self.cm.get_max_age():
 
-                            item['repository'] = product['name'] + ' ' + \
-                                product['edition'] + ' ' + \
-                                product['architecture']
+                            item['repository'] = product['name']
                             item['product_id'] = self.product_id
                             refined_data.append(item)
                         else:
@@ -1375,7 +1373,6 @@ class PackageSearchEngine(Thread):
                         # valid data, add it to the cache and to the results
                         # print('added result: ' + item['name'] + ' ' + item['version'] + '-' + item['release'])
                         item['repository'] = item['products'][0]['name'] + ' ' + \
-                            item['products'][0]['edition'] + ' ' + \
                             item['products'][0]['architecture']
                         item['timestamp'] = datetime.now().isoformat()
                         refined_data.append(item)
@@ -1615,17 +1612,14 @@ class CacheManager(metaclass=Singleton):
                     if product_id == p['id']:
                         if self.verbose:
                             print("* cache hit: " + item)
-                        item['repository'] = p['name'] + ' ' + \
-                            p['edition'] + ' ' + p['architecture']
+                        item['repository'] = p['name']
                         return item, p
 
                 # check compatible module list
                 for m in modules_data:
                     if product_id in modules_data[m]['products']:
                         # print("module " + m + "(" + modules_data[m]['name'] + ") claims to be compatible with product id " + product_id + "(" + product_list[product_id]['name'] + ")")
-                        item['repository'] = modules_data[m]['name'] + ' ' + \
-                            modules_data[m]['edition'] + ' ' + \
-                            modules_data[m]['architecture']
+                        item['repository'] = modules_data[m]['name']
                         if self.verbose:
                             print("* cache hit: " + item)
                         return item, modules_data[m]
