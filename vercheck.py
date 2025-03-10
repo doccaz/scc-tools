@@ -47,12 +47,14 @@ class SCCVersion():
 
     # to get the list of product IDs:
     # rmt-cli products list --name "SUSE Manager Server" --all
+
+    # SUSE Manager from 4.0 to 4.3 is a special case, as it had its own product entry. 
+    # from 5.x onwards it's just a regular extension for SLE Micro.
     suma_product_list = {
         1899: {'name': 'SUSE Manager Server 4.0', 'identifier': '4.0'},
         2012: {'name': 'SUSE Manager Server 4.1', 'identifier': '4.1'},
         2222: {'name': 'SUSE Manager Server 4.2', 'identifier': '4.2'},
         2378: {'name': 'SUSE Manager Server 4.3', 'identifier': '4.3'},
-        2718: {'name': 'SUSE Manager Server 5.0', 'identifier': '5.0'},
     }
 
     # result lists
@@ -315,10 +317,10 @@ class SCCVersion():
 
     def list_products(self):
         print('Known products list')
-        print('ID	Name')
-        print('-----------------------------------------------------')
-        for k, v in self.product_list.items():
-            print(str(k) + '\t' + v['name'])
+        print('ID' + '\t' + 'Name' +  '\t\t\t\t' + 'Architecture')
+        print('----------------------------------------------------------------')
+        for p in self.product_list:
+            print(str(p['id']) + '\t' + str(p['name'])+ ' ' + str(p['version']) + ' ' + str(p['architecture']))
 
         print('total: ' + str(len(self.product_list)) + ' products.')
         return
