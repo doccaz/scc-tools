@@ -27,540 +27,23 @@ except ImportError as e:
 # main class that deals with command lines, reports and everything else
 class SCCVersion():
 
-    version = '2.3'
-    build = '20240718'
+    version = '2.4'
+    build = '20250308'
 
     # static product list (taken from RMT and other sources)
     # rmt-cli products list --name "SUSE Linux Enterprise Server" --all
     # rmt-cli products list --name "SUSE Linux Enterprise Desktop" --all
     # rmt-cli products list --name "openSUSE" --all
-    product_list = {
-        1115: {'name': 'SUSE Linux Enterprise Server 12 s390x', 'arch': 's390x', 'identifier': 'cpe:/o:suse:sles:12'},
-        1116: {'name': 'SUSE Linux Enterprise Server 12 ppc64le', 'arch': 'ppc64le', 'identifier': 'cpe:/o:suse:sles:12'},
-        1117: {'name': 'SUSE Linux Enterprise Server 12 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:suse:sles:12'},
-        1118: {'name': 'SUSE Linux Enterprise Desktop 12 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:suse:sled:12'},
-        1322: {'name': 'SUSE Linux Enterprise Server 12 SP1 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:suse:sles:12:sp1'},
-        1333: {'name': 'SUSE Linux Enterprise Desktop 12 SP1 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:suse:sled:12:sp1'},
-        1334: {'name': 'SUSE Linux Enterprise Server 12 SP1 ppc64le', 'arch': 'ppc64le', 'identifier': 'cpe:/o:suse:sles:12:sp1'},
-        1335: {'name': 'SUSE Linux Enterprise Server 12 SP1 s390x', 'arch': 's390x', 'identifier': 'cpe:/o:suse:sles:12:sp1'},
-        1355: {'name': 'SUSE Linux Enterprise Server 12 SP2 ppc64le', 'arch': 'ppc64le', 'identifier': 'cpe:/o:suse:sles:12:sp2'},
-        1356: {'name': 'SUSE Linux Enterprise Server 12 SP2 s390x', 'arch': 's390x', 'identifier': 'cpe:/o:suse:sles:12:sp2'},
-        1357: {'name': 'SUSE Linux Enterprise Server 12 SP2 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:suse:sles:12:sp2'},
-        1375: {'name': 'SUSE Linux Enterprise Server 12 SP2 aarch64', 'arch': 'aarch64', 'identifier': 'cpe:/o:suse:sles:12:sp2'},
-        1358: {'name': 'SUSE Linux Enterprise Desktop 12 SP2 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:suse:sled:12:sp2'},
-        1421: {'name': 'SUSE Linux Enterprise Server 12 SP3 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:suse:sles:12:sp3'},
-        1422: {'name': 'SUSE Linux Enterprise Server 12 SP3 ppc64le', 'arch': 'ppc64le', 'identifier': 'cpe:/o:suse:sles:12:sp3'},
-        1423: {'name': 'SUSE Linux Enterprise Server 12 SP3 s390x', 'arch': 's390x', 'identifier': 'cpe:/o:suse:sles:12:sp3'},
-        1424: {'name': 'SUSE Linux Enterprise Server 12 SP3 aarch64', 'arch': 'aarch64', 'identifier': 'cpe:/o:suse:sles:12:sp3'},
-        1425: {'name': 'SUSE Linux Enterprise Desktop 12 SP3 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:suse:sled:12:sp3'},
-        1625: {'name': 'SUSE Linux Enterprise Server 12 SP4 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:suse:sles:12:sp4'},
-        1626: {'name': 'SUSE Linux Enterprise Server 12 SP4 ppc64le', 'arch': 'ppc64le', 'identifier': 'cpe:/o:suse:sles:12:sp4'},
-        1627: {'name': 'SUSE Linux Enterprise Server 12 SP4 s390x', 'arch': 's390x', 'identifier': 'cpe:/o:suse:sles:12:sp4'},
-        1628: {'name': 'SUSE Linux Enterprise Server 12 SP4 aarch64', 'arch': 'aarch64', 'identifier': 'cpe:/o:suse:sles:12:sp4'},
-        1629: {'name': 'SUSE Linux Enterprise Desktop 12 SP4 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:suse:sled:12:sp4'},
-        1875: {'name': 'SUSE Linux Enterprise Server 12 SP5 aarch64', 'arch': 'aarch64', 'identifier': 'cpe:/o:suse:sles:12:sp5'},
-        1876: {'name': 'SUSE Linux Enterprise Server 12 SP5 ppc64le', 'arch': 'ppc64le', 'identifier': 'cpe:/o:suse:sles:12:sp5'},
-        1877: {'name': 'SUSE Linux Enterprise Server 12 SP5 s390x', 'arch': 's390x', 'identifier': 'cpe:/o:suse:sles:12:sp5'},
-        1878: {'name': 'SUSE Linux Enterprise Server 12 SP5 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:suse:sles:12:sp5'},
-
-        1319: {'name': 'SUSE Linux Enterprise Server for SAP Applications 12 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:suse:sles_sap:12'},
-        1346: {'name': 'SUSE Linux Enterprise Server for SAP Applications 12 SP1 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:suse:sles_sap:12:sp1'},
-        1414: {'name': 'SUSE Linux Enterprise Server for SAP Applications 12 SP2 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:suse:sles_sap:12:sp2'},
-        1426: {'name': 'SUSE Linux Enterprise Server for SAP Applications 12 SP3 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:suse:sles_sap:12:sp3'},
-        1437: {'name': 'SUSE Linux Enterprise Server for SAP Applications 12 SP1 ppc64le', 'arch': 'ppc64le', 'identifier': 'cpe:/o:suse:sles_sap:12:sp1'},
-        1521: {'name': 'SUSE Linux Enterprise Server for SAP Applications 12 SP2 ppc64le', 'arch': 'ppc64le', 'identifier': 'cpe:/o:suse:sles_sap:12:sp2'},
-        1572: {'name': 'SUSE Linux Enterprise Server for SAP Applications 12 SP3 ppc64le', 'arch': 'ppc64le', 'identifier': 'cpe:/o:suse:sles_sap:12:sp3'},
-        1754: {'name': 'SUSE Linux Enterprise Server for SAP Applications 12 SP4 ppc64le', 'arch': 'ppc64le', 'identifier': 'cpe:/o:suse:sles_sap:12:sp4'},
-        1755: {'name': 'SUSE Linux Enterprise Server for SAP Applications 12 SP4 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:suse:sles_sap:12:sp4'},
-        1879: {'name': 'SUSE Linux Enterprise Server for SAP Applications 12 SP5 ppc64le', 'arch': 'ppc64le', 'identifier': 'cpe:/o:suse:sles_sap:12:sp5'},
-        1880: {'name': 'SUSE Linux Enterprise Server for SAP Applications 12 SP5 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:suse:sles_sap:12:sp5'},
-        1612: {'name': 'SUSE Linux Enterprise Server for SAP Applications 15 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:suse:sles_sap:15'},
-        1613: {'name': 'SUSE Linux Enterprise Server for SAP Applications 15 ppc64le', 'arch': 'ppc64le', 'identifier': 'cpe:/o:suse:sles_sap:15'},
-        1765: {'name': 'SUSE Linux Enterprise Server for SAP Applications 15 SP1 ppc64le', 'arch': 'ppc64le', 'identifier': 'cpe:/o:suse:sles_sap:15:sp1'},
-        1766: {'name': 'SUSE Linux Enterprise Server for SAP Applications 15 SP1 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:suse:sles_sap:15:sp1'},
-        1940: {'name': 'SUSE Linux Enterprise Server for SAP Applications 15 SP2 ppc64le', 'arch': 'ppc64le', 'identifier': 'cpe:/o:suse:sles_sap:15:sp2'},
-        1941: {'name': 'SUSE Linux Enterprise Server for SAP Applications 15 SP2 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:suse:sles_sap:15:sp2'},
-        2135: {'name': 'SUSE Linux Enterprise Server for SAP Applications 15 SP3 ppc64le', 'arch': 'ppc64le', 'identifier': 'cpe:/o:suse:sles_sap:15:sp3'},
-        2136: {'name': 'SUSE Linux Enterprise Server for SAP Applications 15 SP3 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:suse:sles_sap:15:sp3'},
-        2293: {'name': 'SUSE Linux Enterprise Server for SAP Applications 15 SP4 ppc64le', 'arch': 'ppc64le', 'identifier': 'cpe:/o:suse:sles_sap:15:sp4'},
-        2294: {'name': 'SUSE Linux Enterprise Server for SAP Applications 15 SP4 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:suse:sles_sap:15:sp4'},
-        2467: {'name': 'SUSE Linux Enterprise Server for SAP Applications 15 SP5 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:suse:sles_sap:15:sp5'},
-        2611: {'name': 'SUSE Linux Enterprise Server for SAP Applications 15 SP6 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:suse:sles_sap:15:sp6'},
-
-        1575: {'name': 'SUSE Linux Enterprise Server 15 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:suse:sles:15'},
-        1584: {'name': 'SUSE Linux Enterprise Server 15 s390x', 'arch': 's390x', 'identifier': 'cpe:/o:suse:sles:15'},
-        1585: {'name': 'SUSE Linux Enterprise Server 15 ppc64le', 'arch': 'ppc64le', 'identifier': 'cpe:/o:suse:sles:15'},
-        1586: {'name': 'SUSE Linux Enterprise Server 15 aarch64', 'arch': 'aarch64', 'identifier': 'cpe:/o:suse:sles:15'},
-        1609: {'name': 'SUSE Linux Enterprise Desktop 15 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:suse:sled:15'},
-
-        1760: {'name': 'SUSE Linux Enterprise Server 15 SP1 aarch64', 'arch': 'aarch64', 'identifier': 'cpe:/o:suse:sles:15:sp1'},
-        1761: {'name': 'SUSE Linux Enterprise Server 15 SP1 ppc64le', 'arch': 'ppc64le', 'identifier': 'cpe:/o:suse:sles:15:sp1'},
-        1762: {'name': 'SUSE Linux Enterprise Server 15 SP1 s390x', 'arch': 's390x', 'identifier': 'cpe:/o:suse:sles:15:sp1'},
-        1763: {'name': 'SUSE Linux Enterprise Server 15 SP1 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:suse:sles:15:sp1'},
-        1764: {'name': 'SUSE Linux Enterprise Desktop 15 SP1 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:suse:sled:15:sp1'},
-
-        1936: {'name': 'SUSE Linux Enterprise Server 15 SP2 aarch64', 'arch': 'aarch64', 'identifier': 'cpe:/o:suse:sles:15:sp2'},
-        1937: {'name': 'SUSE Linux Enterprise Server 15 SP2 ppc64le', 'arch': 'ppc64le', 'identifier': 'cpe:/o:suse:sles:15:sp2'},
-        1938: {'name': 'SUSE Linux Enterprise Server 15 SP2 s390x', 'arch': 's390x', 'identifier': 'cpe:/o:suse:sles:15:sp2'},
-        1939: {'name': 'SUSE Linux Enterprise Server 15 SP2 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:suse:sles:15:sp2'},
-        1935: {'name': 'SUSE Linux Enterprise Desktop 15 SP2 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:suse:sled:15:sp2'},
-
-        2137: {'name': 'SUSE Linux Enterprise Server 15 SP3 aarch64', 'arch': 'aarch64', 'identifier': 'cpe:/o:suse:sles:15:sp3'},
-        2138: {'name': 'SUSE Linux Enterprise Server 15 SP3 ppc64le', 'arch': 'ppc64le', 'identifier': 'cpe:/o:suse:sles:15:sp3'},
-        2139: {'name': 'SUSE Linux Enterprise Server 15 SP3 s390x', 'arch': 's390x', 'identifier': 'cpe:/o:suse:sles:15:sp3'},
-        2140: {'name': 'SUSE Linux Enterprise Server 15 SP3 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:suse:sles:15:sp3'},
-        2134: {'name': 'SUSE Linux Enterprise Desktop 15 SP3 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:suse:sled:15:sp3'},
-
-        2289: {'name': 'SUSE Linux Enterprise Server 15 SP4 aarch64', 'arch': 'aarch64', 'identifier': 'cpe:/o:suse:sles:15:sp4'},
-        2290: {'name': 'SUSE Linux Enterprise Server 15 SP4 ppc64le', 'arch': 'ppc64le', 'identifier': 'cpe:/o:suse:sles:15:sp4'},
-        2291: {'name': 'SUSE Linux Enterprise Server 15 SP4 s390x', 'arch': 's390x', 'identifier': 'cpe:/o:suse:sles:15:sp4'},
-        2292: {'name': 'SUSE Linux Enterprise Server 15 SP4 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:suse:sles:15:sp4'},
-        2295: {'name': 'SUSE Linux Enterprise Desktop 15 SP4 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:suse:sled:15:sp4'},
-
-        2462: {'name': 'SUSE Linux Enterprise Server 15 SP5 aarch64', 'arch': 'aarch64', 'identifier': 'cpe:/o:suse:sles:15:sp5'},
-        2463: {'name': 'SUSE Linux Enterprise Server 15 SP5 ppc64le', 'arch': 'ppc64le', 'identifier': 'cpe:/o:suse:sles:15:sp5'},
-        2464: {'name': 'SUSE Linux Enterprise Server 15 SP5 s390x', 'arch': 's390x', 'identifier': 'cpe:/o:suse:sles:15:sp5'},
-        2465: {'name': 'SUSE Linux Enterprise Server 15 SP5 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:suse:sles:15:sp5'},
-        2468: {'name': 'SUSE Linux Enterprise Desktop 15 SP5 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:suse:sled:15:sp5'},
-
-        2606: {'name': 'SUSE Linux Enterprise Server 15 SP6 aarch64', 'arch': 'aarch64', 'identifier': 'cpe:/o:suse:sles:15:sp6'},
-        2607: {'name': 'SUSE Linux Enterprise Server 15 SP6 ppc64le', 'arch': 'ppc64le', 'identifier': 'cpe:/o:suse:sles:15:sp6'},
-        2608: {'name': 'SUSE Linux Enterprise Server 15 SP6 s390x', 'arch': 's390x', 'identifier': 'cpe:/o:suse:sles:15:sp6'},
-        2609: {'name': 'SUSE Linux Enterprise Server 15 SP6 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:suse:sles:15:sp6'},
-        
-        2202: {'name': 'SUSE Linux Enterprise Micro 5.0 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:suse:sle-micro:5.0'},
-        2283: {'name': 'SUSE Linux Enterprise Micro 5.1 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:suse:sle-micro:5.1'},
-        2287: {'name': 'SUSE Linux Enterprise Micro 5.1 s390x', 'arch': 's390x', 'identifier': 'cpe:/o:suse:sle-micro:5.1'},
-        2400: {'name': 'SUSE Linux Enterprise Micro 5.2 s390x', 'arch': 's390x', 'identifier': 'cpe:/o:suse:sle-micro:5.2'},
-        2401: {'name': 'SUSE Linux Enterprise Micro 5.2 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:suse:sle-micro:5.2'},
-        2427: {'name': 'SUSE Linux Enterprise Micro 5.3 s390x', 'arch': 's390x', 'identifier': 'cpe:/o:suse:sle-micro:5.3'},
-        2428: {'name': 'SUSE Linux Enterprise Micro 5.3 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:suse:sle-micro:5.3'},
-        2573: {'name': 'SUSE Linux Enterprise Micro 5.4 s390x', 'arch': 's390x', 'identifier': 'cpe:/o:suse:sle-micro:5.4'},
-        2574: {'name': 'SUSE Linux Enterprise Micro 5.4 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:suse:sle-micro:5.4'},
-        2605: {'name': 'SUSE Linux Enterprise Micro 5.5 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:suse:sle-micro:5.5'},
-        2699: {'name': 'SUSE Linux Micro 6.0 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:suse:sle-micro:6.0'},
-            
-        1929: {'name': 'openSUSE Leap 15.1 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:opensuse:leap:15.1'},
-        2001: {'name': 'openSUSE Leap 15.2 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:opensuse:leap:15.2'},
-
-        2233: {'name': 'openSUSE Leap 15.3 aarch64', 'arch': 'aarch64', 'identifier': 'cpe:/o:opensuse:leap:15.3'},
-        2234: {'name': 'openSUSE Leap 15.3 ppc64le', 'arch': 'ppc64le', 'identifier': 'cpe:/o:opensuse:leap:15.3'},
-        2235: {'name': 'openSUSE Leap 15.3 s390x', 'arch': 's390x', 'identifier': 'cpe:/o:opensuse:leap:15.3'},
-        2236: {'name': 'openSUSE Leap 15.3 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:opensuse:leap:15.3'},
-
-        2406: {'name': 'openSUSE Leap 15.4 aarch64', 'arch': 'aarch64', 'identifier': 'cpe:/o:opensuse:leap:15.4'},
-        2407: {'name': 'openSUSE Leap 15.4 ppc64le', 'arch': 'ppc64le', 'identifier': 'cpe:/o:opensuse:leap:15.4'},
-        2408: {'name': 'openSUSE Leap 15.4 s390x', 'arch': 's390x', 'identifier': 'cpe:/o:opensuse:leap:15.4'},
-        2409: {'name': 'openSUSE Leap 15.4 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:opensuse:leap:15.4'},
-
-        2585: {'name': 'openSUSE Leap 15.5 aarch64', 'arch': 'aarch64', 'identifier': 'cpe:/o:opensuse:leap:15.5'},
-        2586: {'name': 'openSUSE Leap 15.5 ppc64le', 'arch': 'ppc64le', 'identifier': 'cpe:/o:opensuse:leap:15.5'},
-        2587: {'name': 'openSUSE Leap 15.5 s390x', 'arch': 's390x', 'identifier': 'cpe:/o:opensuse:leap:15.5'},
-        2588: {'name': 'openSUSE Leap 15.5 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:opensuse:leap:15.5'},
-        
-        2731: {'name': 'openSUSE Leap 15.6 aarch64', 'arch': 'aarch64', 'identifier': 'cpe:/o:opensuse:leap:15.6'},
-        2732: {'name': 'openSUSE Leap 15.6 ppc64le', 'arch': 'ppc64le', 'identifier': 'cpe:/o:opensuse:leap:15.6'},
-        2733: {'name': 'openSUSE Leap 15.6 s390x', 'arch': 's390x', 'identifier': 'cpe:/o:opensuse:leap:15.6'},
-        2734: {'name': 'openSUSE Leap 15.6 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:opensuse:leap:15.6'},
-        
-        2520: {'name': 'openSUSE Leap Micro 5.2 aarch64', 'arch': 'aarch64', 'identifier': 'cpe:/o:opensuse:leap-micro:5.2'},
-        2521: {'name': 'openSUSE Leap Micro 5.2 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:opensuse:leap-micro:5.2'},
-        2563: {'name': 'openSUSE Leap Micro 5.3 aarch64', 'arch': 'aarch64', 'identifier': 'cpe:/o:opensuse:leap-micro:5.3'},
-        2564: {'name': 'openSUSE Leap Micro 5.3 x86_64', 'arch': 'x86_64', 'identifier': 'cpe:/o:opensuse:leap-micro:5.3'},
-    }
+    # 
+    # (replaced by this alternative, no authentication needed):
+    # https://scc.suse.com/api/package_search/products
+    #
+    product_list = {}
 
     # all known module IDs, and corresponding product IDs (from RMT)
     # modules: rmt-cli products list --all --csv | grep '15 SPx' | grep x86_64 | egrep -v 'Debuginfo|Sources' | egrep -i 'Module|PackageHub'
     # related products: rmt-cli products list --all --csv | grep '15 SPx' | grep x86_64 | egrep -v 'Debuginfo|Sources' | egrep -iv 'Module|PackageHub'
-    sle_modules_by_product_list = {
-        1522: {'name': 'HPC Module 12 aarch64', 'edition': '12', 'architecture': 'aarch64', 'products': [1375, 1424, 1628, 1875]},
-        1539: {'name': 'Web and Scripting Module 12 aarch64', 'edition': '12', 'architecture': 'aarch64', 'products': [1375, 1424, 1628, 1875]},
-        1528: {'name': 'Public Cloud Module 12 aarch64', 'edition': '12', 'architecture': 'aarch64', 'products': [1375, 1424, 1628, 1875]},
-        1376: {'name': 'Toolchain Module 12 aarch64', 'edition': '12', 'architecture': 'aarch64', 'products': [1375, 1424, 1628, 1875]},
-
-        1148: {'name': 'Legacy Module 12 ppc64le', 'edition': '12', 'architecture': 'ppc64le', 'products': [1116]},
-        1151: {'name': 'Web and Scripting Module 12 ppc64le', 'edition': '12', 'architecture': 'ppc64le', 'products': [1116]},
-        1218: {'name': 'Public Cloud Module 12 ppc64le', 'edition': '12', 'architecture': 'ppc64le', 'products': [1116]},
-        1294: {'name': 'Advanced Systems Management Module 12 ppc64le', 'edition': '12', 'architecture': 'ppc64le', 'products': [1116]},
-        1339: {'name': 'Toolchain Module 12 ppc64le', 'edition': '12', 'architecture': 'ppc64le', 'products': [1116]},
-        1353: {'name': 'Containers Module 12 ppc64le', 'edition': '12', 'architecture': 'ppc64le', 'products': [1116]},
-        1367: {'name': 'Certifications Module 12 ppc64le', 'edition': '12', 'architecture': 'ppc64le', 'products': [1116]},
-
-        1149: {'name': 'Legacy Module 12 s390x', 'edition': '12', 'architecture': 's390x', 'products': [1115]},
-        1152: {'name': 'Web and Scripting Module 12 s390x', 'edition': '12', 'architecture': 's390x', 'products': [1115]},
-        1295: {'name': 'Advanced Systems Management Module 12 s390x', 'edition': '12', 'architecture': 's390x', 'products': [1115]},
-        1340: {'name': 'Toolchain Module 12 s390x', 'edition': '12', 'architecture': 's390x', 'products': [1115]},
-        1354: {'name': 'Containers Module 12 s390x', 'edition': '12', 'architecture': 's390x', 'products': [1115]},
-        1367: {'name': 'Certifications Module 12 s390x', 'edition': '12', 'architecture': 's390x', 'products': [1115]},
-        1474: {'name': 'SUSE Package Hub 12 s390x', 'edition': '12', 'architecture': 's390x', 'products': [1115]},
-
-        1477: {'name': 'SUSE Package Hub 12 SP1 s390x', 'edition': '12 SP1', 'architecture': 's390x', 'products': [1335]},
-        1480: {'name': 'SUSE Package Hub 12 SP2 s390x', 'edition': '12 SP2', 'architecture': 's390x', 'products': [1356]},
-        1530: {'name': 'SUSE Package Hub 12 SP3 s390x', 'edition': '12 SP3', 'architecture': 's390x', 'products': [1423]},
-        1812: {'name': 'SUSE Package Hub 12 SP4 s390x', 'edition': '12 SP4', 'architecture': 's390x', 'products': [1627]},
-        1914: {'name': 'SUSE Package Hub 12 SP5 s390x', 'edition': '12 SP5', 'architecture': 's390x', 'products': [1877]},
-
-        1150: {'name': 'Legacy Module 12 x86_64', 'edition': '12', 'architecture': 'x86_64', 'products': [1117, 1118, 1319]},
-        1153: {'name': 'Web and Scripting Module 12 x86_64', 'edition': '12', 'architecture': 'x86_64', 'products': [1117, 1118, 1319]},
-        1212: {'name': 'Advanced Systems Management Module 12 x86_64', 'edition': '12', 'architecture': 'x86_64', 'products': [1117, 1118, 1319]},
-        1220: {'name': 'Public Cloud Module 12 x86_64', 'edition': '12', 'architecture': 'x86_64', 'products': [1117, 1118, 1319]},
-        1332: {'name': 'Containers Module 12 x86_64', 'edition': '12', 'architecture': 'x86_64', 'products': [1117, 1118, 1319]},
-        1341: {'name': 'Toolchain Module 12 x86_64', 'edition': '12', 'architecture': 'x86_64', 'products': [1117, 1118, 1319]},
-        1368: {'name': 'Certifications Module 12 x86_64', 'edition': '12', 'architecture': 'x86_64', 'products': [1117, 1118, 1319]},
-        1440: {'name': 'HPC Module 12 x86_64', 'edition': '12', 'architecture': 'x86_64', 'products': [1117, 1118, 1319]},
-        1473: {'name': 'SUSE Package Hub 12 x86_64', 'edition': '12', 'architecture': 'x86_64', 'products': [1117, 1118, 1319]},
-
-        1476: {'name': 'SUSE Package Hub 12 SP1 x86_64', 'edition': '12 SP1', 'architecture': 'x86_64', 'products': [1333, 1322, 1346]},
-        1479: {'name': 'SUSE Package Hub 12 SP2 x86_64', 'edition': '12 SP2', 'architecture': 'x86_64', 'products': [1358, 1749, 1438, 1357]},
-        1529: {'name': 'SUSE Package Hub 12 SP3 x86_64', 'edition': '12 SP3', 'architecture': 'x86_64', 'products': [1425, 1751, 1619, 1421, 1426]},
-        1813: {'name': 'SUSE Package Hub 12 SP4 x86_64', 'edition': '12 SP4', 'architecture': 'x86_64', 'products': [1629, 1759, 1924, 1625, 1755, 2117]},
-        1915: {'name': 'SUSE Package Hub 12 SP5 x86_64', 'edition': '12 SP5', 'architecture': 'x86_64', 'products': [2020, 1873, 2006, 1878, 1880]},
-
-        1587: {'name': 'Basesystem Module 15 s390x', 'edition': '15', 'architecture': 's390x', 'products': [1584]},
-        1593: {'name': 'Desktop Applications Module 15 s390x', 'edition': '15', 'architecture': 's390x', 'products': [1584]},
-        1596: {'name': 'Development Tools Module 15 s390x', 'edition': '15', 'architecture': 's390x', 'products': [1584]},
-        1599: {'name': 'Server Applications Module 15 s390x', 'edition': '15', 'architecture': 's390x', 'products': [1584]},
-        1602: {'name': 'Legacy Module 15 s390x', 'edition': '15', 'architecture': 's390x', 'products': [1584]},
-        1641: {'name': 'Containers Module 15 s390x', 'edition': '15', 'architecture': 's390x', 'products': [1584]},
-        1646: {'name': 'Public Cloud Module 15 s390x', 'edition': '15', 'architecture': 's390x', 'products': [1584]},
-        1720: {'name': 'Web and Scripting Module 15 s390x', 'edition': '15', 'architecture': 's390x', 'products': [1584]},
-        1742: {'name': 'SUSE Package Hub 15 s390x', 'edition': '15', 'architecture': 's390x', 'products': [1584]},
-
-        1589: {'name': 'Basesystem Module 15 aarch64', 'edition': '15', 'architecture': 'aarch64', 'products': [1586]},
-        1595: {'name': 'Desktop Applications Module 15 aarch64', 'edition': '15', 'architecture': 'aarch64', 'products': [1586]},
-        1598: {'name': 'Development Tools Module 15 aarch64', 'edition': '15', 'architecture': 'aarch64', 'products': [1586]},
-        1601: {'name': 'Server Applications Module 15 aarch64', 'edition': '15', 'architecture': 'aarch64', 'products': [1586]},
-        1604: {'name': 'Legacy Module 15 aarch64', 'edition': '15', 'architecture': 'aarch64', 'products': [1586]},
-        1645: {'name': 'Public Cloud Module 15 aarch64', 'edition': '15', 'architecture': 'aarch64', 'products': [1586]},
-        1718: {'name': 'Web and Scripting Module 15 aarch64', 'edition': '15', 'architecture': 'aarch64', 'products': [1586]},
-        1733: {'name': 'HPC Module 15 aarch64', 'edition': '15', 'architecture': 'aarch64', 'products': [1586]},
-        1740: {'name': 'SUSE Package Hub 15 aarch64', 'edition': '15', 'architecture': 'aarch64', 'products': [1586]},
-
-        1576: {'name': 'Basesystem Module 15 x86_64', 'edition': '15', 'architecture': 'x86_64', 'products': [1612, 1575, 1609, 1732, 2056]},
-        1578: {'name': 'Desktop Applications Module 15 x86_64', 'edition': '15', 'architecture': 'x86_64', 'products': [1612, 1575, 1609, 1732, 2056]},
-        1579: {'name': 'Development Tools Module 15 x86_64', 'edition': '15', 'architecture': 'x86_64', 'products': [1612, 1575, 1609, 1732, 2056]},
-        1580: {'name': 'Server Applications Module 15 x86_64', 'edition': '15', 'architecture': 'x86_64', 'products': [1612, 1575, 1609, 1732, 2056]},
-        1581: {'name': 'Legacy Module 15 x86_64', 'edition': '15', 'architecture': 'x86_64', 'products': [1612, 1575, 1609, 1732, 2056]},
-        1611: {'name': 'Public Cloud Module 15 x86_64', 'edition': '15', 'architecture': 'x86_64', 'products': [1612, 1575, 1609, 1732, 2056]},
-        1642: {'name': 'Containers Module 15 x86_64', 'edition': '15', 'architecture': 'x86_64', 'products': [1612, 1575, 1609, 1732, 2056]},
-        1721: {'name': 'Web and Scripting Module 15 x86_64', 'edition': '15', 'architecture': 'x86_64', 'products': [1612, 1575, 1609, 1732, 2056]},
-        1734: {'name': 'HPC Module 15 x86_64', 'edition': '15', 'architecture': 'x86_64', 'products': [1612, 1575, 1609, 1732, 2056]},
-        2131: {'name': 'NVIDIA Compute Module 15 x86_64', 'edition': '15', 'architecture': 'x86_64', 'products': [1612, 1575, 1609, 1732, 2056]},
-        1727: {'name': 'SAP Applications Module 15 x86_64', 'edition': '15', 'architecture': 'x86_64', 'products': [1612, 1575, 1609, 1732, 2056]},
-        1728: {'name': 'SUSE Cloud Application Platform Tools Module 15 x86_64', 'edition': '15', 'architecture': 'x86_64', 'products': [1612, 1575, 1609, 1732, 2056]},
-        1743: {'name': 'SUSE Package Hub 15 x86_64', 'edition': '15', 'architecture': 'x86_64', 'products': [1612, 1575, 1609, 1732, 2056]},
-
-        1771: {'name': 'Basesystem Module 15 SP1 s390x', 'edition': '15 SP1', 'architecture': 's390x', 'products': [1762]},
-        1775: {'name': 'Desktop Applications Module 15 SP1 s390x', 'edition': '15 SP1', 'architecture': 's390x', 'products': [1762]},
-        1779: {'name': 'Server Applications Module 15 SP1 s390x', 'edition': '15 SP1', 'architecture': 's390x', 'products': [1762]},
-        1789: {'name': 'Containers Module 15 SP1 s390x', 'edition': '15 SP1', 'architecture': 's390x', 'products': [1762]},
-        1793: {'name': 'Development Tools Module 15 SP1 s390x', 'edition': '15 SP1', 'architecture': 's390x', 'products': [1762]},
-        1797: {'name': 'Web and Scripting Module 15 SP1 s390x', 'edition': '15 SP1', 'architecture': 's390x', 'products': [1762]},
-        1803: {'name': 'Legacy Module 15 SP1 s390x', 'edition': '15 SP1', 'architecture': 's390x', 'products': [1762]},
-        1807: {'name': 'Public Cloud Module 15 SP1 s390x', 'edition': '15 SP1', 'architecture': 's390x', 'products': [1762]},
-        1824: {'name': 'Transactional Server Module 15 SP1 s390x', 'edition': '15 SP1', 'architecture': 's390x', 'products': [1762]},
-        1866: {'name': 'Python 2 Module 15 SP1 s390x', 'edition': '15 SP1', 'architecture': 's390x', 'products': [1762]},
-        1870: {'name': 'SUSE Package Hub 15 SP1 s390x', 'edition': '15 SP1', 'architecture': 's390x', 'products': [1762]},
-
-        1769: {'name': 'Basesystem Module 15 SP1 aarch64', 'edition': '15 SP1', 'architecture': 'aarch64', 'products': [1760]},
-        1773: {'name': 'Desktop Applications Module 15 SP1 aarch64', 'edition': '15 SP1', 'architecture': 'aarch64', 'products': [1760]},
-        1777: {'name': 'Server Applications Module 15 SP1 aarch64', 'edition': '15 SP1', 'architecture': 'aarch64', 'products': [1760]},
-        1920: {'name': 'Containers Module 15 SP1 aarch64', 'edition': '15 SP1', 'architecture': 'aarch64', 'products': [1760]},
-        1791: {'name': 'Development Tools Module 15 SP1 aarch64', 'edition': '15 SP1', 'architecture': 'aarch64', 'products': [1760]},
-        1795: {'name': 'Web and Scripting Module 15 SP1 aarch64', 'edition': '15 SP1', 'architecture': 'aarch64', 'products': [1760]},
-        1801: {'name': 'Legacy Module 15 SP1 aarch64', 'edition': '15 SP1', 'architecture': 'aarch64', 'products': [1760]},
-        1805: {'name': 'Public Cloud Module 15 SP1 aarch64', 'edition': '15 SP1', 'architecture': 'aarch64', 'products': [1760]},
-        1822: {'name': 'Transactional Server Module 15 SP1 aarch64', 'edition': '15 SP1', 'architecture': 'aarch64', 'products': [1760]},
-        1864: {'name': 'Python 2 Module 15 SP1 aarch64', 'edition': '15 SP1', 'architecture': 'aarch64', 'products': [1760]},
-        1799: {'name': 'HPC Module 15 SP1 aarch64', 'edition': '15 SP1', 'architecture': 'aarch64', 'products': [1760]},
-        1868: {'name': 'SUSE Package Hub 15 SP1 aarch64', 'edition': '15 SP1', 'architecture': 'aarch64', 'products': [1760]},
-
-        1772: {'name': 'Basesystem Module 15 SP1 x86_64', 'edition': '15 SP1', 'architecture': 'x86_64', 'products': [1766, 1763, 1764, 1768, 1861]},
-        1776: {'name': 'Desktop Applications Module 15 SP1 x86_64', 'edition': '15 SP1', 'architecture': 'x86_64', 'products': [1766, 1763, 1764, 1768, 1861]},
-        1790: {'name': 'Containers Module 15 SP1 x86_64', 'edition': '15 SP1', 'architecture': 'x86_64', 'products': [1766, 1763, 1764, 1768, 1861]},
-        1794: {'name': 'Development Tools Module 15 SP1 x86_64', 'edition': '15 SP1', 'architecture': 'x86_64', 'products': [1766, 1763, 1764, 1768, 1861]},
-        1780: {'name': 'Server Applications Module 15 SP1 x86_64', 'edition': '15 SP1', 'architecture': 'x86_64', 'products': [1766, 1763, 1764, 1768, 1861]},
-        1798: {'name': 'Web and Scripting Module 15 SP1 x86_64', 'edition': '15 SP1', 'architecture': 'x86_64', 'products': [1766, 1763, 1764, 1768, 1861]},
-        1800: {'name': 'HPC Module 15 SP1 x86_64', 'edition': '15 SP1', 'architecture': 'x86_64', 'products': [1766, 1763, 1764, 1768, 1861]},
-        1804: {'name': 'Legacy Module 15 SP1 x86_64', 'edition': '15 SP1', 'architecture': 'x86_64', 'products': [1766, 1763, 1764, 1768, 1861]},
-        1808: {'name': 'Public Cloud Module 15 SP1 x86_64', 'edition': '15 SP1', 'architecture': 'x86_64', 'products': [1766, 1763, 1764, 1768, 1861]},
-        1809: {'name': 'SUSE Cloud Application Platform Tools Module 15 SP1 x86_64', 'edition': '15 SP1', 'architecture': 'x86_64', 'products': [1766, 1763, 1764, 1768, 1861]},
-        1825: {'name': 'Transactional Server Module 15 SP1 x86_64', 'edition': '15 SP1', 'architecture': 'x86_64', 'products': [1766, 1763, 1764, 1768, 1861]},
-        1867: {'name': 'Python 2 Module 15 SP1 x86_64', 'edition': '15 SP1', 'architecture': 'x86_64', 'products': [1766, 1763, 1764, 1768, 1861]},
-        1787: {'name': 'SAP Applications Module 15 SP1 x86_64', 'edition': '15 SP1', 'architecture': 'x86_64', 'products': [1766, 1763, 1764, 1768, 1861]},
-        1862: {'name': 'SUSE Real Time Module 15 SP1 x86_64', 'edition': '15 SP1', 'architecture': 'x86_64', 'products': [1766, 1763, 1764, 1768, 1861]},
-        1871: {'name': 'SUSE Package Hub 15 SP1 x86_64', 'edition': '15 SP1', 'architecture': 'x86_64', 'products': [1766, 1763, 1764, 1768, 1861]},
-
-        1945: {'name': 'Basesystem Module 15 SP2 s390x', 'edition': '15 SP2', 'architecture': 's390x', 'products': [1938]},
-        1962: {'name': 'Containers Module 15 SP2 s390x', 'edition': '15 SP2', 'architecture': 's390x', 'products': [1938]},
-        1966: {'name': 'Desktop Applications Module 15 SP2 s390x', 'edition': '15 SP2', 'architecture': 's390x', 'products': [1938]},
-        1970: {'name': 'Development Tools Module 15 SP2 s390x', 'edition': '15 SP2', 'architecture': 's390x', 'products': [1938]},
-        1981: {'name': 'Legacy Module 15 SP2 s390x', 'edition': '15 SP2', 'architecture': 's390x', 'products': [1938]},
-        1987: {'name': 'Public Cloud Module 15 SP2 s390x', 'edition': '15 SP2', 'architecture': 's390x', 'products': [1938]},
-        1991: {'name': 'Python 2 Module 15 SP2 s390x', 'edition': '15 SP2', 'architecture': 's390x', 'products': [1938]},
-        1954: {'name': 'Server Applications Module 15 SP2 s390x', 'edition': '15 SP2', 'architecture': 's390x', 'products': [1938]},
-        1975: {'name': 'Web and Scripting Module 15 SP2 s390x', 'edition': '15 SP2', 'architecture': 's390x', 'products': [1938]},
-        1997: {'name': 'Transactional Server Module 15 SP2 s390x', 'edition': '15 SP2', 'architecture': 's390x', 'products': [1938]},
-        1949: {'name': 'SUSE Package Hub 15 SP2 s390x', 'edition': '15 SP2', 'architecture': 's390x', 'products': [1938]},
-
-        1943: {'name': 'Basesystem Module 15 SP2 aarch64', 'edition': '15 SP2', 'architecture': 'aarch64', 'products': [1936]},
-        1964: {'name': 'Desktop Applications Module 15 SP2 aarch64', 'edition': '15 SP2', 'architecture': 'aarch64', 'products': [1936]},
-        1952: {'name': 'Server Applications Module 15 SP2 aarch64', 'edition': '15 SP2', 'architecture': 'aarch64', 'products': [1936]},
-        1960: {'name': 'Containers Module 15 SP2 aarch64', 'edition': '15 SP2', 'architecture': 'aarch64', 'products': [1936]},
-        1968: {'name': 'Development Tools Module 15 SP2 aarch64', 'edition': '15 SP2', 'architecture': 'aarch64', 'products': [1936]},
-        1973: {'name': 'Web and Scripting Module 15 SP2 aarch64', 'edition': '15 SP2', 'architecture': 'aarch64', 'products': [1936]},
-        1979: {'name': 'Legacy Module 15 SP2 aarch64', 'edition': '15 SP2', 'architecture': 'aarch64', 'products': [1936]},
-        1985: {'name': 'Public Cloud Module 15 SP2 aarch64', 'edition': '15 SP2', 'architecture': 'aarch64', 'products': [1936]},
-        1995: {'name': 'Transactional Server Module 15 SP2 aarch64', 'edition': '15 SP2', 'architecture': 'aarch64', 'products': [1936]},
-        1989: {'name': 'Python 2 Module 15 SP2 aarch64', 'edition': '15 SP2', 'architecture': 'aarch64', 'products': [1936]},
-        1933: {'name': 'HPC Module 15 SP2 aarch64', 'edition': '15 SP2', 'architecture': 'aarch64', 'products': [1936]},
-        1947: {'name': 'SUSE Package Hub 15 SP2 aarch64', 'edition': '15 SP2', 'architecture': 'aarch64', 'products': [1936]},
-
-        1946: {'name': 'Basesystem Module 15 SP2 x86_64', 'edition': '15 SP2', 'architecture': 'x86_64', 'products': [1941, 1939, 1935, 1934, 2003]},
-        1955: {'name': 'Server Applications Module 15 SP2 x86_64', 'edition': '15 SP2', 'architecture': 'x86_64', 'products': [1941, 1939, 1935, 1934, 2003]},
-        1963: {'name': 'Containers Module 15 SP2 x86_64', 'edition': '15 SP2', 'architecture': 'x86_64', 'products': [1941, 1939, 1935, 1934, 2003]},
-        1967: {'name': 'Desktop Applications Module 15 SP2 x86_64', 'edition': '15 SP2', 'architecture': 'x86_64', 'products': [1941, 1939, 1935, 1934, 2003]},
-        1971: {'name': 'Development Tools Module 15 SP2 x86_64', 'edition': '15 SP2', 'architecture': 'x86_64', 'products': [1941, 1939, 1935, 1934, 2003]},
-        1976: {'name': 'Web and Scripting Module 15 SP2 x86_64', 'edition': '15 SP2', 'architecture': 'x86_64', 'products': [1941, 1939, 1935, 1934, 2003]},
-        1978: {'name': 'HPC Module 15 SP2 x86_64', 'edition': '15 SP2', 'architecture': 'x86_64', 'products': [1941, 1939, 1935, 1934, 2003]},
-        1982: {'name': 'Legacy Module 15 SP2 x86_64', 'edition': '15 SP2', 'architecture': 'x86_64', 'products': [1941, 1939, 1935, 1934, 2003]},
-        1988: {'name': 'Public Cloud Module 15 SP2 x86_64', 'edition': '15 SP2', 'architecture': 'x86_64', 'products': [1941, 1939, 1935, 1934, 2003]},
-        1992: {'name': 'Python 2 Module 15 SP2 x86_64', 'edition': '15 SP2', 'architecture': 'x86_64', 'products': [1941, 1939, 1935, 1934, 2003]},
-        1998: {'name': 'Transactional Server Module 15 SP2 x86_64', 'edition': '15 SP2', 'architecture': 'x86_64', 'products': [1941, 1939, 1935, 1934, 2003]},
-        2075: {'name': 'SUSE Cloud Application Platform Tools Module 15 SP2 x86_64', 'edition': '15 SP2', 'architecture': 'x86_64', 'products': [1941, 1939, 1935, 1934, 2003]},
-        1994: {'name': 'SAP Applications Module 15 SP2 x86_64', 'edition': '15 SP2', 'architecture': 'x86_64', 'products': [1941, 1939, 1935, 1934, 2003]},
-        2005: {'name': 'SUSE Real Time Module 15 SP2 x86_64', 'edition': '15 SP2', 'architecture': 'x86_64', 'products': [1941, 1939, 1935, 1934, 2003]},
-        1950: {'name': 'SUSE Package Hub 15 SP2 x86_64', 'edition': '15 SP2', 'architecture': 'x86_64', 'products': [1941, 1939, 1935, 1934, 2003]},
-
-        2144: {'name': 'Basesystem Module 15 SP3 s390x', 'edition': '15 SP3', 'architecture': 's390x', 'products': [2139]},
-        2148: {'name': 'Desktop Applications Module 15 SP3 s390x', 'edition': '15 SP3', 'architecture': 's390x', 'products': [2139]},
-        2152: {'name': 'Server Applications Module 15 SP3 s390x', 'edition': '15 SP3', 'architecture': 's390x', 'products': [2139]},
-        2156: {'name': 'Containers Module 15 SP3 s390x', 'edition': '15 SP3', 'architecture': 's390x', 'products': [2139]},
-        2388: {'name': 'Certifications Module 15 SP3 s390x', 'edition': '15 SP3', 'architecture': 's390x', 'products': [2139]},
-        2160: {'name': 'Development Tools Module 15 SP3 s390x', 'edition': '15 SP3', 'architecture': 's390x', 'products': [2139]},
-        2164: {'name': 'Web and Scripting Module 15 SP3 s390x', 'edition': '15 SP3', 'architecture': 's390x', 'products': [2139]},
-        2170: {'name': 'Legacy Module 15 SP3 s390x', 'edition': '15 SP3', 'architecture': 's390x', 'products': [2139]},
-        2174: {'name': 'Public Cloud Module 15 SP3 s390x', 'edition': '15 SP3', 'architecture': 's390x', 'products': [2139]},
-        2179: {'name': 'Transactional Server Module 15 SP3 s390x', 'edition': '15 SP3', 'architecture': 's390x', 'products': [2139]},
-        2183: {'name': 'Python 2 Module 15 SP3 s390x', 'edition': '15 SP3', 'architecture': 's390x', 'products': [2139]},
-        2190: {'name': 'SUSE Package Hub 15 SP3 s390x', 'edition': '15 SP3', 'architecture': 's390x', 'products': [2139]},
-
-        2142: {'name': 'Basesystem Module 15 SP3 aarch64', 'edition': '15 SP3', 'architecture': 'aarch64', 'products': [2137]},
-        2146: {'name': 'Desktop Applications Module 15 SP3 aarch64', 'edition': '15 SP3', 'architecture': 'aarch64', 'products': [2137]},
-        2150: {'name': 'Server Applications Module 15 SP3 aarch64', 'edition': '15 SP3', 'architecture': 'aarch64', 'products': [2137]},
-        2154: {'name': 'Containers Module 15 SP3 aarch64', 'edition': '15 SP3', 'architecture': 'aarch64', 'products': [2137]},
-        2158: {'name': 'Development Tools Module 15 SP3 aarch64', 'edition': '15 SP3', 'architecture': 'aarch64', 'products': [2137]},
-        2164: {'name': 'Web and Scripting Module 15 SP3 aarch64', 'edition': '15 SP3', 'architecture': 'aarch64', 'products': [2137]},
-        2168: {'name': 'Legacy Module 15 SP3 aarch64', 'edition': '15 SP3', 'architecture': 'aarch64', 'products': [2137]},
-        2172: {'name': 'Public Cloud Module 15 SP3 aarch64', 'edition': '15 SP3', 'architecture': 'aarch64', 'products': [2137]},
-        2177: {'name': 'Transactional Server Module 15 SP3 aarch64', 'edition': '15 SP3', 'architecture': 'aarch64', 'products': [2137]},
-        2181: {'name': 'Python 2 Module 15 SP3 aarch64', 'edition': '15 SP3', 'architecture': 'aarch64', 'products': [2137]},
-        2166: {'name': 'HPC Module 15 SP3 aarch64', 'edition': '15 SP3', 'architecture': 'aarch64', 'products': [2137]},
-        2386: {'name': 'Certifications Module 15 SP3 aarch64', 'edition': '15 SP3', 'architecture': 'aarch64', 'products': [2137]},
-        2188: {'name': 'SUSE Package Hub 15 SP3 aarch64', 'edition': '15 SP3', 'architecture': 'aarch64', 'products': [2137]},
-
-        2143: {'name': 'Basesystem Module 15 SP3 ppc64le', 'edition': '15 SP3', 'architecture': 'ppc64le', 'products': [2138]},
-        2147: {'name': 'Desktop Applications Module 15 SP3 ppc64le', 'edition': '15 SP3', 'architecture': 'ppc64le', 'products': [2138]},
-        2151: {'name': 'Server Applications Module 15 SP3 ppc64le', 'edition': '15 SP3', 'architecture': 'ppc64le', 'products': [2138]},
-        2155: {'name': 'Containers Module 15 SP3 ppc64le', 'edition': '15 SP3', 'architecture': 'ppc64le', 'products': [2138]},
-        2159: {'name': 'Development Tools Module 15 SP3 ppc64le', 'edition': '15 SP3', 'architecture': 'ppc64le', 'products': [2138]},
-        2163: {'name': 'Web and Scripting Module 15 SP3 ppc64le', 'edition': '15 SP3', 'architecture': 'ppc64le', 'products': [2138]},
-        2169: {'name': 'Legacy Module 15 SP3 ppc64le', 'edition': '15 SP3', 'architecture': 'ppc64le', 'products': [2138]},
-        2173: {'name': 'Public Cloud Module 15 SP3 ppc64le', 'edition': '15 SP3', 'architecture': 'ppc64le', 'products': [2138]},
-        2178: {'name': 'Transactional Server Module 15 SP3 ppc64le', 'edition': '15 SP3', 'architecture': 'ppc64le', 'products': [2138]},
-        2182: {'name': 'Python 2 Module 15 SP3 ppc64le', 'edition': '15 SP3', 'architecture': 'ppc64le', 'products': [2138]},
-        2387: {'name': 'Certifications Module 15 SP3 ppc64le', 'edition': '15 SP3', 'architecture': 'ppc64le', 'products': [2138]},
-        2189: {'name': 'SUSE Package Hub 15 SP3 ppc64le', 'edition': '15 SP3', 'architecture': 'ppc64le', 'products': [2138]},
-
-        2145: {'name': 'Basesystem Module 15 SP3 x86_64', 'edition': '15 SP3', 'architecture': 'x86_64', 'products': [2136, 2140, 2134, 2133, 2285]},
-        2389: {'name': 'Certifications Module 15 SP3 x86_64', 'edition': '15 SP3', 'architecture': 'x86_64', 'products': [2136, 2140, 2134, 2285]},
-        2149: {'name': 'Desktop Applications Module 15 SP3 x86_64', 'edition': '15 SP3', 'architecture': 'x86_64', 'products': [2136, 2140, 2134, 2285]},
-        2153: {'name': 'Server Applications Module 15 SP3 x86_64', 'edition': '15 SP3', 'architecture': 'x86_64', 'products': [2136, 2140, 2134, 2285]},
-        2157: {'name': 'Containers Module 15 SP3 x86_64', 'edition': '15 SP3', 'architecture': 'x86_64', 'products': [2136, 2140, 2134, 2285]},
-        2161: {'name': 'Development Tools Module 15 SP3 x86_64', 'edition': '15 SP3', 'architecture': 'x86_64', 'products': [2136, 2140, 2134, 2285]},
-        2165: {'name': 'Web and Scripting Module 15 SP3 x86_64', 'edition': '15 SP3', 'architecture': 'x86_64', 'products': [2136, 2140, 2134, 2285]},
-        2167: {'name': 'HPC Module 15 SP3 x86_64', 'edition': '15 SP3', 'architecture': 'x86_64', 'products': [2136, 2140, 2134, 2285]},
-        2171: {'name': 'Legacy Module 15 SP3 x86_64', 'edition': '15 SP3', 'architecture': 'x86_64', 'products': [2136, 2140, 2134, 2285]},
-        2175: {'name': 'Public Cloud Module 15 SP3 x86_64', 'edition': '15 SP3', 'architecture': 'x86_64', 'products': [2136, 2140, 2134, 2285]},
-        2180: {'name': 'Transactional Server Module 15 SP3 x86_64', 'edition': '15 SP3', 'architecture': 'x86_64', 'products': [2136, 2140, 2134, 2285]},
-        2184: {'name': 'Python 2 Module 15 SP3 x86_64', 'edition': '15 SP3', 'architecture': 'x86_64', 'products': [2136, 2140, 2134, 2285]},
-        2198: {'name': 'SAP Applications Module 15 SP3 x86_64', 'edition': '15 SP3', 'architecture': 'x86_64', 'products': [2136, 2140, 2134, 2285]},
-        2176: {'name': 'SUSE Cloud Application Platform Tools Module 15 SP3 x86_64', 'edition': '15 SP3', 'architecture': 'x86_64', 'products': [2136, 2140, 2134, 2285]},
-        2286: {'name': 'SUSE Real Time Module 15 SP3 x86_64', 'edition': '15 SP3', 'architecture': 'x86_64', 'products': [2136, 2140, 2134, 2285]},
-        2191: {'name': 'SUSE Package Hub 15 SP3 x86_64', 'edition': '15 SP3', 'architecture': 'x86_64', 'products': [2136, 2140, 2134, 2285]},
-
-        2297: {'name': 'Basesystem Module 15 SP4 ppc64le', 'edition': '15 SP4', 'architecture': 'ppc64le', 'products': [2290]},
-        2301: {'name': 'Desktop Applications Module 15 SP4 ppc64le', 'edition': '15 SP4', 'architecture': 'ppc64le', 'products': [2290]},
-        2305: {'name': 'Server Applications Module 15 SP4 ppc64le', 'edition': '15 SP4', 'architecture': 'ppc64le', 'products': [2290]},
-        2309: {'name': 'Containers Module 15 SP4 ppc64le', 'edition': '15 SP4', 'architecture': 'ppc64le', 'products': [2290]},
-        2313: {'name': 'Development Tools Module 15 SP4 ppc64le', 'edition': '15 SP4', 'architecture': 'ppc64le', 'products': [2290]},
-        2317: {'name': 'Web and Scripting Module 15 SP4 ppc64le', 'edition': '15 SP4', 'architecture': 'ppc64le', 'products': [2290]},
-        2321: {'name': 'Legacy Module 15 SP4 ppc64le', 'edition': '15 SP4', 'architecture': 'ppc64le', 'products': [2290]},
-        2325: {'name': 'Public Cloud Module 15 SP4 ppc64le', 'edition': '15 SP4', 'architecture': 'ppc64le', 'products': [2290]},
-        2329: {'name': 'Transactional Server Module 15 SP4 ppc64le', 'edition': '15 SP4', 'architecture': 'ppc64le', 'products': [2290]},
-        2403: {'name': 'Python 3 Module 15 SP4 ppc64le', 'edition': '15 SP4', 'architecture': 'ppc64le', 'products': [2290]},
-        2391: {'name': 'Certifications Module 15 SP4 ppc64le', 'edition': '15 SP4', 'architecture': 'ppc64le', 'products': [2290]},
-        2345: {'name': 'SUSE Package Hub 15 SP4 ppc64le', 'edition': '15 SP4', 'architecture': 'ppc64le', 'products': [2290]},
-
-        2296: {'name': 'Basesystem Module 15 SP4 aarch64', 'edition': '15 SP4', 'architecture': 'aarch64', 'products': [2289, 2353]},
-        2300: {'name': 'Desktop Applications Module 15 SP4 aarch64', 'edition': '15 SP4', 'architecture': 'aarch64', 'products': [2289, 2353]},
-        2304: {'name': 'Server Applications Module 15 SP4 aarch64', 'edition': '15 SP4', 'architecture': 'aarch64', 'products': [2289, 2353]},
-        2308: {'name': 'Containers Module 15 SP4 aarch64', 'edition': '15 SP4', 'architecture': 'aarch64', 'products': [2289, 2353]},
-        2312: {'name': 'Development Tools Module 15 SP4 aarch64', 'edition': '15 SP4', 'architecture': 'aarch64', 'products': [2289, 2353]},
-        2316: {'name': 'Web and Scripting Module 15 SP4 aarch64', 'edition': '15 SP4', 'architecture': 'aarch64', 'products': [2289, 2353]},
-        2320: {'name': 'Legacy Module 15 SP4 aarch64', 'edition': '15 SP4', 'architecture': 'aarch64', 'products': [2289, 2353]},
-        2324: {'name': 'Public Cloud Module 15 SP4 aarch64', 'edition': '15 SP4', 'architecture': 'aarch64', 'products': [2289, 2353]},
-        2328: {'name': 'Transactional Server Module 15 SP4 aarch64', 'edition': '15 SP4', 'architecture': 'aarch64', 'products': [2289, 2353]},
-        2402: {'name': 'Python 3 Module 15 SP4 aarch64', 'edition': '15 SP4', 'architecture': 'aarch64', 'products': [2289, 2353]},
-        2390: {'name': 'Certifications Module 15 SP4 aarch64', 'edition': '15 SP4', 'architecture': 'aarch64', 'products': [2289, 2353]},
-        2355: {'name': 'HPC Module 15 SP4 aarch64', 'edition': '15 SP4', 'architecture': 'aarch64', 'products': [2289, 2353]},
-        2345: {'name': 'SUSE Package Hub 15 SP4 aarch64', 'edition': '15 SP4', 'architecture': 'aarch64', 'products': [2289, 2353]},
-
-        2298: {'name': 'Basesystem Module 15 SP4 s390x', 'edition': '15 SP4', 'architecture': 's390x', 'products': [2291]},
-        2302: {'name': 'Desktop Applications Module 15 SP4 s390x', 'edition': '15 SP4', 'architecture': 's390x', 'products': [2291]},
-        2306: {'name': 'Server Applications Module 15 SP4 s390x', 'edition': '15 SP4', 'architecture': 's390x', 'products': [2291]},
-        2310: {'name': 'Containers Module 15 SP4 s390x', 'edition': '15 SP4', 'architecture': 's390x', 'products': [2291]},
-        2314: {'name': 'Development Tools Module 15 SP4 s390x', 'edition': '15 SP4', 'architecture': 's390x', 'products': [2291]},
-        2318: {'name': 'Web and Scripting Module 15 SP4 s390x', 'edition': '15 SP4', 'architecture': 's390x', 'products': [2291]},
-        2322: {'name': 'Legacy Module 15 SP4 s390x', 'edition': '15 SP4', 'architecture': 's390x', 'products': [2291]},
-        2326: {'name': 'Public Cloud Module 15 SP4 s390x', 'edition': '15 SP4', 'architecture': 's390x', 'products': [2291]},
-        2330: {'name': 'Transactional Server Module 15 SP4 s390x', 'edition': '15 SP4', 'architecture': 's390x', 'products': [2291]},
-        2404: {'name': 'Python 3 Module 15 SP4 s390x', 'edition': '15 SP4', 'architecture': 's390x', 'products': [2291]},
-        2392: {'name': 'Certifications Module 15 SP4 s390x', 'edition': '15 SP4', 'architecture': 's390x', 'products': [2291]},
-        2355: {'name': 'HPC Module 15 SP4 s390x', 'edition': '15 SP4', 'architecture': 's390x', 'products': [2291]},
-        2346: {'name': 'SUSE Package Hub 15 SP4 s390x', 'edition': '15 SP4', 'architecture': 's390x', 'products': [2291]},
-
-        2299: {'name': 'Basesystem Module 15 SP4 x86_64', 'edition': '15 SP4', 'architecture': 'x86_64', 'products': [2295, 2340, 2354, 2421, 2292, 2294, 2343]},
-        2393: {'name': 'Certifications Module 15 SP4 x86_64', 'edition': '15 SP4', 'architecture': 'x86_64', 'products': [2295, 2340, 2354, 2421, 2292, 2294, 2343]},
-        2311: {'name': 'Containers Module 15 SP4 x86_64', 'edition': '15 SP4', 'architecture': 'x86_64', 'products': [2295, 2340, 2354, 2421, 2292, 2294, 2343]},
-        2303: {'name': 'Desktop Applications Module 15 SP4 x86_64', 'edition': '15 SP4', 'architecture': 'x86_64', 'products': [2295, 2340, 2354, 2421, 2292, 2294, 2343]},
-        2315: {'name': 'Development Tools Module 15 SP4 x86_64', 'edition': '15 SP4', 'architecture': 'x86_64', 'products': [2295, 2340, 2354, 2421, 2292, 2294, 2343]},
-        2356: {'name': 'HPC Module 15 SP4 x86_64', 'edition': '15 SP4', 'architecture': 'x86_64', 'products': [2295, 2340, 2354, 2421, 2292, 2294, 2343]},
-        2323: {'name': 'Legacy Module 15 SP4 x86_64', 'edition': '15 SP4', 'architecture': 'x86_64', 'products': [2295, 2340, 2354, 2421, 2292, 2294, 2343]},
-        2327: {'name': 'Public Cloud Module 15 SP4 x86_64', 'edition': '15 SP4', 'architecture': 'x86_64', 'products': [2295, 2340, 2354, 2421, 2292, 2294, 2343]},
-        2405: {'name': 'Python 3 Module 15 SP4 x86_64', 'edition': '15 SP4', 'architecture': 'x86_64', 'products': [2295, 2340, 2354, 2421, 2292, 2294, 2343]},
-        2342: {'name': 'SAP Applications Module 15 SP4 x86_64', 'edition': '15 SP4', 'architecture': 'x86_64', 'products': [2295, 2340, 2354, 2421, 2292, 2294, 2343]},
-        2600: {'name': 'SAP Business One Module 15 SP4 x86_64', 'edition': '15 SP4', 'architecture': 'x86_64', 'products': [2295, 2340, 2354, 2421, 2292, 2294, 2343]},
-        2307: {'name': 'Server Applications Module 15 SP4 x86_64', 'edition': '15 SP4', 'architecture': 'x86_64', 'products': [2295, 2340, 2354, 2421, 2292, 2294, 2343]},
-        2334: {'name': 'Live Patching 15 SP4 x86_64', 'edition': '15 SP4', 'architecture': 'x86_64', 'products': [2295, 2340, 2354, 2421, 2292, 2294, 2343]},
-        2347: {'name': 'SUSE Package Hub 15 SP4 x86_64', 'edition': '15 SP4', 'architecture': 'x86_64', 'products': [2295, 2340, 2354, 2421, 2292, 2294, 2343]},
-        2422: {'name': 'SUSE Real Time Module 15 SP4 x86_64', 'edition': '15 SP4', 'architecture': 'x86_64', 'products': [2295, 2340, 2354, 2421, 2292, 2294, 2343]},
-        2331: {'name': 'Transactional Server Module 15 SP4 x86_64', 'edition': '15 SP4', 'architecture': 'x86_64', 'products': [2295, 2340, 2354, 2421, 2292, 2294, 2343]},
-        2319: {'name': 'Web and Scripting Module 15 SP4 x86_64', 'edition': '15 SP4', 'architecture': 'x86_64', 'products': [2295, 2340, 2354, 2421, 2292, 2294, 2343]},
-
-        2471: {'name': 'Basesystem Module 15 SP5 aarch64', 'edition': '15 SP5', 'architecture': 'aarch64', 'products': [2462, 2469]},
-        2555: {'name': 'Certifications Module 15 SP5 aarch64', 'edition': '15 SP5', 'architecture': 'aarch64', 'products': [2462, 2469]},
-        2483: {'name': 'Containers Module 15 SP5 aarch64', 'edition': '15 SP5', 'architecture': 'aarch64', 'products': [2462, 2469]},
-        2475: {'name': 'Desktop Applications Module 15 SP5 aarch64', 'edition': '15 SP5', 'architecture': 'aarch64', 'products': [2462, 2469]},
-        2487: {'name': 'Development Tools Module 15 SP5 aarch64', 'edition': '15 SP5', 'architecture': 'aarch64', 'products': [2462, 2469]},
-        2497: {'name': 'Legacy Module 15 SP5 aarch64', 'edition': '15 SP5', 'architecture': 'aarch64', 'products': [2462, 2469]},
-        2495: {'name': 'HPC Module 15 SP5 aarch64', 'edition': '15 SP5', 'architecture': 'aarch64', 'products': [2462, 2469]},
-        2501: {'name': 'Public Cloud Module 15 SP5 aarch64', 'edition': '15 SP5', 'architecture': 'aarch64', 'products': [2462, 2469]},
-        2533: {'name': 'Python 3 Module 15 SP5 aarch64', 'edition': '15 SP5', 'architecture': 'aarch64', 'products': [2462, 2469]},
-        2479: {'name': 'Server Applications Module 15 SP5 aarch64', 'edition': '15 SP5', 'architecture': 'aarch64', 'products': [2462, 2469]},
-        2559: {'name': 'SUSE Package Hub 15 SP5 aarch64', 'edition': '15 SP5', 'architecture': 'aarch64', 'products': [2462, 2469]},
-        2505: {'name': 'Transactional Server Module 15 SP5 aarch64', 'edition': '15 SP5', 'architecture': 'aarch64', 'products': [2462, 2469]},
-        2491: {'name': 'Web and Scripting Module 15 SP5 aarch64', 'edition': '15 SP5', 'architecture': 'aarch64', 'products': [2462, 2469]},
-
-        2472: {'name': 'Basesystem Module 15 SP5 ppc64le', 'edition': '15 SP5', 'architecture': 'ppc64le', 'products': [2463]},
-        2556: {'name': 'Certifications Module 15 SP5 ppc64le', 'edition': '15 SP5', 'architecture': 'ppc64le', 'products': [2463]},
-        2484: {'name': 'Containers Module 15 SP5 ppc64le', 'edition': '15 SP5', 'architecture': 'ppc64le', 'products': [2463]},
-        2476: {'name': 'Desktop Applications Module 15 SP5 ppc64le', 'edition': '15 SP5', 'architecture': 'ppc64le', 'products': [2463]},
-        2488: {'name': 'Development Tools Module 15 SP5 ppc64le', 'edition': '15 SP5', 'architecture': 'ppc64le', 'products': [2463]},
-        2498: {'name': 'Legacy Module 15 SP5 ppc64le', 'edition': '15 SP5', 'architecture': 'ppc64le', 'products': [2463]},
-        2502: {'name': 'Public Cloud Module 15 SP5 ppc64le', 'edition': '15 SP5', 'architecture': 'ppc64le', 'products': [2463]},
-        2534: {'name': 'Python 3 Module 15 SP5 ppc64le', 'edition': '15 SP5', 'architecture': 'ppc64le', 'products': [2463]},
-        2480: {'name': 'Server Applications Module 15 SP5 ppc64le', 'edition': '15 SP5', 'architecture': 'ppc64le', 'products': [2463]},
-        2560: {'name': 'SUSE Package Hub 15 SP5 ppc64le', 'edition': '15 SP5', 'architecture': 'ppc64le', 'products': [2463]},
-        2506: {'name': 'Transactional Server Module 15 SP5 ppc64le', 'edition': '15 SP5', 'architecture': 'ppc64le', 'products': [2463]},
-        2492: {'name': 'Web and Scripting Module 15 SP5 ppc64le', 'edition': '15 SP5', 'architecture': 'ppc64le', 'products': [2463]},
-
-        2473: {'name': 'Basesystem Module 15 SP5 s390x', 'edition': '15 SP5', 'architecture': 's390x', 'products': [2464]},
-        2557: {'name': 'Certifications Module 15 SP5 s390x', 'edition': '15 SP5', 'architecture': 's390x', 'products': [2464]},
-        2485: {'name': 'Containers Module 15 SP5 s390x', 'edition': '15 SP5', 'architecture': 's390x', 'products': [2464]},
-        2477: {'name': 'Desktop Applications Module 15 SP5 s390x', 'edition': '15 SP5', 'architecture': 's390x', 'products': [2464]},
-        2489: {'name': 'Development Tools Module 15 SP5 s390x', 'edition': '15 SP5', 'architecture': 's390x', 'products': [2464]},
-        2499: {'name': 'Legacy Module 15 SP5 s390x', 'edition': '15 SP5', 'architecture': 's390x', 'products': [2464]},
-        2503: {'name': 'Public Cloud Module 15 SP5 s390x', 'edition': '15 SP5', 'architecture': 's390x', 'products': [2464]},
-        2535: {'name': 'Python 3 Module 15 SP5 s390x', 'edition': '15 SP5', 'architecture': 's390x', 'products': [2464]},
-        2481: {'name': 'Server Applications Module 15 SP5 s390x', 'edition': '15 SP5', 'architecture': 's390x', 'products': [2464]},
-        2561: {'name': 'SUSE Package Hub 15 SP5 s390x', 'edition': '15 SP5', 'architecture': 's390x', 'products': [2464]},
-        2507: {'name': 'Transactional Server Module 15 SP5 s390x', 'edition': '15 SP5', 'architecture': 's390x', 'products': [2464]},
-        2493: {'name': 'Web and Scripting Module 15 SP5 s390x', 'edition': '15 SP5', 'architecture': 's390x', 'products': [2464]},
-
-        2474: {'name': 'Basesystem Module 15 SP5 x86_64', 'edition': '15 SP5', 'architecture': 'x86_64', 'products': [2468, 2517, 2470, 2582, 2465, 2467, 2513]},
-        2558: {'name': 'Certifications Module 15 SP5 x86_64', 'edition': '15 SP5', 'architecture': 'x86_64', 'products': [2468, 2517, 2470, 2582, 2465, 2467, 2513]},
-        2486: {'name': 'Containers Module 15 SP5 x86_64', 'edition': '15 SP5', 'architecture': 'x86_64', 'products': [2468, 2517, 2470, 2582, 2465, 2467, 2513]},
-        2478: {'name': 'Desktop Applications Module 15 SP5 x86_64', 'edition': '15 SP5', 'architecture': 'x86_64', 'products': [2468, 2517, 2470, 2582, 2465, 2467, 2513]},
-        2490: {'name': 'Development Tools Module 15 SP5 x86_64', 'edition': '15 SP5', 'architecture': 'x86_64', 'products': [2468, 2517, 2470, 2582, 2465, 2467, 2513]},
-        2496: {'name': 'HPC Module 15 SP5 x86_64', 'edition': '15 SP5', 'architecture': 'x86_64', 'products': [2468, 2517, 2470, 2582, 2465, 2467, 2513]},
-        2500: {'name': 'Legacy Module 15 SP5 x86_64', 'edition': '15 SP5', 'architecture': 'x86_64', 'products': [2468, 2517, 2470, 2582, 2465, 2467, 2513]},
-        2504: {'name': 'Public Cloud Module 15 SP5 x86_64', 'edition': '15 SP5', 'architecture': 'x86_64', 'products': [2468, 2517, 2470, 2582, 2465, 2467, 2513]},
-        2536: {'name': 'Python 3 Module 15 SP5 x86_64', 'edition': '15 SP5', 'architecture': 'x86_64', 'products': [2468, 2517, 2470, 2582, 2465, 2467, 2513]},
-        2519: {'name': 'SAP Applications Module 15 SP5 x86_64', 'edition': '15 SP5', 'architecture': 'x86_64', 'products': [2468, 2517, 2470, 2582, 2465, 2467, 2513]},
-        2589: {'name': 'SAP Business One Module 15 SP5 x86_64', 'edition': '15 SP5', 'architecture': 'x86_64', 'products': [2468, 2517, 2470, 2582, 2465, 2467, 2513]},
-        2482: {'name': 'Server Applications Module 15 SP5 x86_64', 'edition': '15 SP5', 'architecture': 'x86_64', 'products': [2468, 2517, 2470, 2582, 2465, 2467, 2513]},
-        2511: {'name': 'Live Patching 15 SP5 x86_64', 'edition': '15 SP5', 'architecture': 'x86_64', 'products': [2468, 2517, 2470, 2582, 2465, 2467, 2513]},
-        2562: {'name': 'SUSE Package Hub 15 SP5 x86_64', 'edition': '15 SP5', 'architecture': 'x86_64', 'products': [2468, 2517, 2470, 2582, 2465, 2467, 2513]},
-        2583: {'name': 'SUSE Real Time Module 15 SP5 x86_64', 'edition': '15 SP5', 'architecture': 'x86_64', 'products': [2468, 2517, 2470, 2582, 2465, 2467, 2513]},
-        2508: {'name': 'Transactional Server Module 15 SP5 x86_64', 'edition': '15 SP5', 'architecture': 'x86_64', 'products': [2468, 2517, 2470, 2582, 2465, 2467, 2513]},
-        2494: {'name': 'Web and Scripting Module 15 SP5 x86_64', 'edition': '15 SP5', 'architecture': 'x86_64', 'products': [2468, 2517, 2470, 2582, 2465, 2467, 2513]},
-
-        2615: {'name': 'Basesystem Module 15 SP6 aarch64', 'edition': '15 SP6', 'architecture': 'aarch64', 'products': [2613, 2606]},
-        2634: {'name': 'Containers Module 15 SP6 aarch64', 'edition': '15 SP6', 'architecture': 'aarch64', 'products': [2613, 2606]},
-        2619: {'name': 'Desktop Applications Module 16 SP5 aarch64', 'edition': '15 SP6', 'architecture': 'aarch64', 'products': [2613, 2606]},
-        2638: {'name': 'Development Tools Module 16 SP5 aarch64', 'edition': '15 SP6', 'architecture': 'aarch64', 'products': [2613, 2606]},
-        2647: {'name': 'HPC Module 15 SP6 aarch64', 'edition': '15 SP6', 'architecture': 'aarch64', 'products': [2613, 2606]},
-        2649: {'name': 'Legacy Module 15 SP6 aarch64', 'edition': '15 SP6', 'architecture': 'aarch64', 'products': [2613, 2606]},
-        2653: {'name': 'Public Cloud Module 15 SP6 aarch64', 'edition': '15 SP6', 'architecture': 'aarch64', 'products': [2613, 2606]},
-        2680: {'name': 'Python 3 Module 15 SP6 aarch64', 'edition': '15 SP6', 'architecture': 'aarch64', 'products': [2613, 2606]},
-        2623: {'name': 'Server Applications Module 15 SP6 aarch64', 'edition': '15 SP6', 'architecture': 'aarch64', 'products': [2613, 2606]},
-        2684: {'name': 'SUSE Package Hub 15 SP6 aarch64', 'edition': '15 SP6', 'architecture': 'aarch64', 'products': [2613, 2606]},
-        2657: {'name': 'Transactional Server Module 15 SP6 aarch64', 'edition': '15 SP6', 'architecture': 'aarch64', 'products': [2613, 2606]},
-        2643: {'name': 'Web and Scripting Module 15 SP6 aarch64', 'edition': '15 SP6', 'architecture': 'aarch64', 'products': [2613, 2606]},
-
-        2616: {'name': 'Basesystem Module 15 SP6 ppc64le', 'edition': '15 SP6', 'architecture': 'ppc64le', 'products': [2607]},
-        2635: {'name': 'Containers Module 15 SP6 ppc64le', 'edition': '15 SP6', 'architecture': 'ppc64le', 'products': [2607]},
-        2620: {'name': 'Desktop Applications Module 15 SP6 ppc64le', 'edition': '15 SP6', 'architecture': 'ppc64le', 'products': [2607]},
-        2639: {'name': 'Development Tools Module 15 SP6 ppc64le', 'edition': '15 SP6', 'architecture': 'ppc64le', 'products': [2607]},
-        2650: {'name': 'Legacy Module 15 SP6 ppc64le', 'edition': '15 SP6', 'architecture': 'ppc64le', 'products': [2607]},
-        2654: {'name': 'Public Cloud Module 15 SP6 ppc64le', 'edition': '15 SP6', 'architecture': 'ppc64le', 'products': [2607]},
-        2681: {'name': 'Python 3 Module 15 SP6 ppc64le', 'edition': '15 SP6', 'architecture': 'ppc64le', 'products': [2607]},
-        2624: {'name': 'Server Applications Module 15 SP6 ppc64le', 'edition': '15 SP6', 'architecture': 'ppc64le', 'products': [2607]},
-        2685: {'name': 'SUSE Package Hub 15 SP6 ppc64le', 'edition': '15 SP6', 'architecture': 'ppc64le', 'products': [2607]},
-        2658: {'name': 'Transactional Server Module 15 SP6 ppc64le', 'edition': '15 SP6', 'architecture': 'ppc64le', 'products': [2607]},
-        2644: {'name': 'Web and Scripting Module 15 SP6 ppc64le', 'edition': '15 SP6', 'architecture': 'ppc64le', 'products': [2607]},
-
-        2617: {'name': 'Basesystem Module 15 SP6 s390x', 'edition': '15 SP6', 'architecture': 's390x', 'products': [2608]},
-        2636: {'name': 'Containers Module 15 SP6 s390x', 'edition': '15 SP6', 'architecture': 's390x', 'products': [2608]},
-        2621: {'name': 'Desktop Applications Module 15 SP6 s390x', 'edition': '15 SP6', 'architecture': 's390x', 'products': [2608]},
-        2640: {'name': 'Development Tools Module 15 SP6 s390x', 'edition': '15 SP6', 'architecture': 's390x', 'products': [2608]},
-        2651: {'name': 'Legacy Module 15 SP6 s390x', 'edition': '15 SP6', 'architecture': 's390x', 'products': [2608]},
-        2655: {'name': 'Public Cloud Module 15 SP6 s390x', 'edition': '15 SP6', 'architecture': 's390x', 'products': [2608]},
-        2682: {'name': 'Python 3 Module 15 SP6 s390x', 'edition': '15 SP6', 'architecture': 's390x', 'products': [2608]},
-        2625: {'name': 'Server Applications Module 15 SP6 s390x', 'edition': '15 SP6', 'architecture': 's390x', 'products': [2608]},
-        2686: {'name': 'SUSE Package Hub 15 SP6 s390x', 'edition': '15 SP6', 'architecture': 's390x', 'products': [2608]},
-        2659: {'name': 'Transactional Server Module 15 SP6 s390x', 'edition': '15 SP6', 'architecture': 's390x', 'products': [2608]},
-        2645: {'name': 'Web and Scripting Module 15 SP6 s390x', 'edition': '15 SP6', 'architecture': 's390x', 'products': [2608]},
-
-        2618: {'name': 'Basesystem Module 15 SP6 x86_64', 'edition': '15 SP6', 'architecture': 'x86_64', 'products': [2612, 2631, 2614, 2609, 2611, 2661]},
-        2726: {'name': 'Certifications Module 15 SP6 x86_64', 'edition': '15 SP6', 'architecture': 'x86_64', 'products': [2612, 2631, 2614, 2609, 2611, 2661]},
-        2760: {'name': 'Confidential Computing Module 15 SP6 x86_64', 'edition': '15 SP6', 'architecture': 'x86_64', 'products': [2612, 2631, 2614, 2609, 2611, 2661]},
-        2637: {'name': 'Containers Module 15 SP6 x86_64', 'edition': '15 SP6', 'architecture': 'x86_64', 'products': [2612, 2631, 2614, 2609, 2611, 2661]},
-        2622: {'name': 'Desktop Applications Module 15 SP6 x86_64', 'edition': '15 SP6', 'architecture': 'x86_64', 'products': [2612, 2631, 2614, 2609, 2611, 2661]},
-        2641: {'name': 'Development Tools Module 15 SP6 x86_64', 'edition': '15 SP6', 'architecture': 'x86_64', 'products': [2612, 2631, 2614, 2609, 2611, 2661]},
-        2648: {'name': 'HPC Module 15 SP6 x86_64', 'edition': '15 SP6', 'architecture': 'x86_64', 'products': [2612, 2631, 2614, 2609, 2611, 2661]},
-        2652: {'name': 'Legacy Module 15 SP6 x86_64', 'edition': '15 SP6', 'architecture': 'x86_64', 'products': [2612, 2631, 2614, 2609, 2611, 2661]},
-        2656: {'name': 'Public Cloud Module 15 SP6 x86_64', 'edition': '15 SP6', 'architecture': 'x86_64', 'products': [2612, 2631, 2614, 2609, 2611, 2661]},
-        2683: {'name': 'Python 3 Module 15 SP6 x86_64', 'edition': '15 SP6', 'architecture': 'x86_64', 'products': [2612, 2631, 2614, 2609, 2611, 2661]},
-        2727: {'name': 'SAP Business One Module 15 SP6 x86_64', 'edition': '15 SP6', 'architecture': 'x86_64', 'products': [2612, 2631, 2614, 2609, 2611, 2661]},
-        2626: {'name': 'Server Applications Module 15 SP6 x86_64', 'edition': '15 SP6', 'architecture': 'x86_64', 'products': [2612, 2631, 2614, 2609, 2611, 2661]},
-        2664: {'name': 'Live Patching 15 SP6 x86_64', 'edition': '15 SP6', 'architecture': 'x86_64', 'products': [2612, 2631, 2614, 2609, 2611, 2661]},
-        2687: {'name': 'SUSE Package Hub 15 SP6 x86_64', 'edition': '15 SP6', 'architecture': 'x86_64', 'products': [2612, 2631, 2614, 2609, 2611, 2661]},
-        2660: {'name': 'Transactional Server Module 15 SP6 x86_64', 'edition': '15 SP6', 'architecture': 'x86_64', 'products': [2612, 2631, 2614, 2609, 2611, 2661]},
-        2646: {'name': 'Web and Scripting Module 15 SP6 x86_64', 'edition': '15 SP6', 'architecture': 'x86_64', 'products': [2612, 2631, 2614, 2609, 2611, 2661]},
-
-    }
+    # (replaced by a more clever logic)
 
     # to get the list of product IDs:
     # rmt-cli products list --name "SUSE Manager Server" --all
@@ -579,6 +62,9 @@ class SCCVersion():
     unsupported = []
     suseorphans = []
     suseptf = []
+
+    # selected product
+    selected_product = {}
 
     # report flags
     show_unknown = False
@@ -622,6 +108,7 @@ class SCCVersion():
         # ignore DeprecationWarnings for now to avoid polluting the output
         warnings.filterwarnings("ignore", category=DeprecationWarning)
         self.cm = CacheManager()
+        self.product_list = SCCVersion.fetch_product_list()
 
     def set_verbose(self, verbose):
         self.verbose = verbose
@@ -659,6 +146,66 @@ class SCCVersion():
             return text
         return ret
 
+    def fetch_product_list():
+        print(f'-- Downloading product list from SCC...')
+
+        # single instance for urllib3 pool
+        http = urllib3.PoolManager(maxsize=5)
+
+        # maximum retries for each thread
+        max_tries = 3
+        tries = 0
+
+        valid_response = False
+        connection_failed = False
+        
+        # server replies which are temporary errors (and can be retried)
+        retry_states = [429, 502, 504]
+
+        # server replies which are permanent errors (and cannot be retried)
+        error_states = [400, 403, 404, 422, 500, -1]
+
+        base_url = "https://scc.suse.com/api/package_search/products"
+
+        while not valid_response and tries < max_tries:
+            try:
+                r = http.request('GET', base_url, headers={
+                                 'Accept-Encoding': 'gzip, deflate', 'Connection': 'close'})
+            except Exception as e:
+                print('Error while connecting: ' + str(e))
+                connection_failed = True
+
+            if connection_failed:
+                print('It appears the server is offline, giving up.')
+                break
+            elif r.status == 200:
+                if tries > 0:
+                    print('got a good reply after %d tries' % (tries))
+                return_data = json.loads(r.data.decode('utf-8'))
+                valid_response = True
+            elif r.status in error_states:
+                if r.data:
+                    json_data = json.loads(r.data.decode('utf-8'))
+                    print(
+                        'cannot be processed due to error: [' + json_data['error'] + ']')
+                print('got a fatal error (%d). Results will be incomplete!\nPlease contact the service administrators or try again later.' % (r.status))
+                break
+            elif r.status in retry_states:
+                tries = tries + 1
+                print(
+                    'got non-fatal reply (%d) from server, trying again in 5 seconds (try: %d/%d)' % (r.status, tries, max_tries))
+                time.sleep(5)
+                continue
+            else:
+                print('got unknown error %d from the server!' % r.status)
+
+            if valid_response:
+                print('* ' + str(len(return_data['data'])) + ' products found.')
+                return return_data['data']
+
+        return {}
+
+
     def find_suma(self, directory_name):
         regex_suma = r"SUSE Manager release (.*) .*"
         try:
@@ -674,9 +221,7 @@ class SCCVersion():
         return -1
 
     def find_cpe(self, directory_name, architecture):
-        regex_os = r"CPE_NAME=\"(.*)\""
-        regex_sap = r"SLES_SAP-release-([0-9]+)-|SLES_SAP-release-([0-9]+)\.([0-9]+)"
-        regex_sap_cpe = r".*sles_sap\:([0-9]+)$|.*sles_sap\:([0-9]+)\:[a-z]+?([0-9]+)"
+        regex_os = r".*\"cpe\:/o\:suse\:(sles|sled|sles_sap|sle-micro)\:(.*)\:?(.*)\""
 
         try:
             with open(directory_name + '/basic-environment.txt', 'r') as f:
@@ -688,29 +233,19 @@ class SCCVersion():
                 f.close()
 
             matches_os = re.search(regex_os, text)
-            matches_sap = re.search(regex_sap, text_rpms)
-            for p in self.product_list:
-                # first, we try matching the SLES_SAP-release RPM as CPE strings -- according to TID 7023490, the sles_sap string cannot always be trusted...
-                if matches_sap is not None:
-                    matches_sap_cpe = re.search(
-                        regex_sap_cpe, self.product_list[p]['identifier'])
-                    # we match the CPE in the product table (just for our control, remember the TID) and the architecture
-                    if matches_sap_cpe is not None and architecture == self.product_list[p]['arch']:
-                        # the string version does not have a service pack
-                        if matches_sap.group(1) is not None and matches_sap.group(1) == matches_sap_cpe.group(1):
-                            return p
-
-                        # the string version contains a service pack (matches are on groups 2 and 3)
-                        if matches_sap.group(2) is not None and matches_sap.group(2) == matches_sap_cpe.group(2) and matches_sap.group(3) == matches_sap_cpe.group(3):
-                            return p
-
-                # if a SLES_SAP-release package is not found, fall back to checking the CPE
-                elif matches_os.group(1) == self.product_list[p]['identifier'] and architecture == self.product_list[p]['arch']:
-                    return p
+            if matches_os.groups() is not None:
+                print('found CPE: ' + str(matches_os.groups()))
+                print('found architecture: ' + architecture)
+                probable_id = matches_os.group(1).upper() + '/' +  matches_os.group(2).replace(':sp','.') + '/' + architecture.upper()
+                print('probable identifier: ' + probable_id)
+                for p in self.product_list:
+                    if p['identifier'].upper() == probable_id:
+                        print('found record: ' +  str(p))
+                        return p
 
         except Exception as e:
             print('error: ' + str(e))
-        return -1
+        return None
 
     def find_arch(self, directory_name):
         regex = r"^Architecture:\s+(\w+)"
@@ -945,7 +480,6 @@ class SCCVersion():
         return result
 
     def check_supportconfig(self, supportconfigdir):
-
         self.sc_name = supportconfigdir.rstrip(os.sep).split(os.sep)[-1]
         if self.sc_name == '.':
             self.sc_name = os.getcwd().split(os.sep)[-1]
@@ -959,10 +493,12 @@ class SCCVersion():
         match_os = self.find_cpe(supportconfigdir, match_arch)
         match_suma = self.find_suma(supportconfigdir)
         selected_product_id = -1
-        if match_os != -1 and match_arch != "unknown":
-            print('product name = ' + self.product_list[match_os]['name'] + ' (id ' + str(
-                match_os) + ', ' + match_arch + ')')
-            selected_product_id = match_os
+
+        if match_os is not None and match_arch != "unknown":
+            print('product name = ' + match_os['name'] + ' (id ' + str(
+                match_os['id']) + ', ' + match_arch + ')')
+            selected_product_id = match_os['id']
+            self.selected_product = match_os
             # primary repositories for trusted updates should have this regex
             base_regex = r"(^SUSE Linux Enterprise.*|^Basesystem.*)"
             if match_suma != -1:
@@ -973,7 +509,8 @@ class SCCVersion():
                 base_regex = r"^SUSE Manager.*"
 
         else:
-            print('error while determining CPE')
+            print('error while determining CPE. This is an unknown combination!')
+            exit(1)
             return ([], [], [], [])
 
         rpmlist = self.read_rpmlist(supportconfigdir)
@@ -1015,18 +552,18 @@ class SCCVersion():
                 refined_data = t.get_results()
                 # print('refined data = ' + str(refined_data))
                 try:
-                    target = self.product_list[match_os]
+                    target = match_os
                     ver_regex = r"cpe:/o:suse:(sle-micro|sles|sled|sles_sap):(\d+)"
-                    if ('suse:sle-micro' in str(target['identifier'])):
+                    if ('SL-Micro' in str(target['identifier']) or 'SLE-Micro' in str(target['identifier'])):
                         target_version = 'SUSE Linux Enterprise 15'
                     else:
                         target_version = 'SUSE Linux Enterprise ' + \
-                            re.match(ver_regex, target['identifier']).group(2)
+                            target['version'].split('.')[0]
 
                     # print("package does not exist, target_version is " + target_version)
                     # print("supplied distro for package " + str(refined_data['query']) + ' is ' + str(refined_data['supplied_distro']))
                     # print("target identifier is " + target_version)
-                    if (('suse:sle' in str(target['identifier'])) and (str(refined_data['supplied_distro']) not in target_version)):
+                    if (('SLES' in str(target['identifier'])) and (str(refined_data['supplied_distro']) not in target_version)):
                         self.unsupported.append(
                             [refined_data['query'], refined_data['supplied_distro'], refined_data['supplied_version']])
 
@@ -1294,8 +831,7 @@ class PackageSearchEngine(Thread):
 
         # load the local cache if it exists and checks for valid data
         cached_data = self.cm.get_cache_data()
-        modules_data = SCCVersion.sle_modules_by_product_list
-        product_list = SCCVersion.product_list
+        product_list = {}
         if (self.cm.initialized) and self.force_refresh is False:
             try:
                 item, product = self.cm.get_record(
@@ -1484,6 +1020,9 @@ def main():
         else:
             assert False, "invalid option"
 
+    # fetch the product list
+    sv.product_list = SCCVersion.fetch_product_list()
+
     if product_id == -1 or package_name == '':
         print('Please specify a product ID and package name.')
         sv.usage()
@@ -1604,8 +1143,6 @@ class CacheManager(metaclass=Singleton):
 
     # fetches a record from the cache
     def get_record(self, product_id, package_name):
-        product_list = SCCVersion.product_list
-        modules_data = SCCVersion.sle_modules_by_product_list
         for item in self.cache_data:
             if package_name == item['name']:
                 for p in item['products']:
@@ -1615,14 +1152,6 @@ class CacheManager(metaclass=Singleton):
                         item['repository'] = p['name']
                         return item, p
 
-                # check compatible module list
-                for m in modules_data:
-                    if product_id in modules_data[m]['products']:
-                        # print("module " + m + "(" + modules_data[m]['name'] + ") claims to be compatible with product id " + product_id + "(" + product_list[product_id]['name'] + ")")
-                        item['repository'] = modules_data[m]['name']
-                        if self.verbose:
-                            print("* cache hit: " + item)
-                        return item, modules_data[m]
         return None, None
 
     # removes a record from the cache
