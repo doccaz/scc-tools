@@ -10,13 +10,12 @@ It basically uses the APIs available at https://scc.suse.com/api/package_search/
 
 This tool searches for the latest versions of packages on SCC.
 
-It started as a pet project to do a simple package search with the API, but it evolved into a much more complex tool that can analyze supportconfig archives, correlate product versions and repositories, and generate reports on package versions. 
+It started as a pet project to do a simple package search with the API, but it evolved into a much more complex tool that can analyze supportconfig archives, correlate product versions and repositories, and generate reports on package versions.
 
 Disclaimer: I'm a SUSE employee.
 
-Dependencies: this utility depends on urllib3 and pyaml. It also uses zypper as a last-resort mechanism to verify versions.
 
-Usage: 
+Usage:
 ```
 # ./vercheck.py [-l|--list-products] -p|--product product id -n|--name <package name> [-s|--short] [-v|--verbose] [-1|--show-unknown] [-2|--show-differences] [-3|--show-uptodate] [-4|--show-unsupported] [-5|--show-suseorphans] [-6|--show-suseptf] [-o|--outputdir] [-d|--supportconfig] [-a|--arch] [-f|--force-refresh] [-V|--version]
 
@@ -49,7 +48,7 @@ This ignores the cache and goes straight to SCC for the latest data (the results
 
 6) it's also heavily multi-threaded, and as such it has a way more complex data locking logic.
 
-*IMPORTANT*: as we discovered through testing, running multiple parallel copies of this version may "lose" some of the recently refreshed cache entries. This limitation is by design. What happens is that in every session I read the cached entries to memory, then write it all at the end. Everything is changed in-memory. So, whoever runs last "wins". This is to avoid thousands of small disk writes, and possibly being called a "disk killer" :-)
+*IMPORTANT*: As we discovered through testing, running multiple parallel copies of this version may "lose" some of the recently refreshed cache entries. This limitation is by design. What happens is that in every session I read the cached entries to memory, then write it all at the end. Everything is changed in-memory. So, whoever runs last "wins". This is to avoid thousands of small disk writes, and possibly being called a "disk killer" :-)
 In the future I intend to implement a more robust cache backend (sqlite?) and address this. I might also merge it back to a single version of the script.
 
 
@@ -80,7 +79,7 @@ ID      Name
 ...
 
 As of Oct 2023, 103 products are supported.
-``` 
+```
 
 Note: SLE 11 and derivatives are not supported for queries by the API, even though there are valid product numbers for it.
 
@@ -162,21 +161,38 @@ writing CSV reports to /home/erico/Projetos/scc-tools
 
 ```
 
-This option analyzes a previously extracted supportconfig report. It will find the installed RPMs in the report, and run
-searches on ALL packages in order to find which ones are up-to-date, have older versions, or are not found in the official
-repositories. Packages that are from unsupported vendors also get their own report. Packages that are orphans (as in, packages that belong to another version of the OS and were left installed) and PTF (Program Temporary Fix) packages built by SUSE also have a separate report.
+This option analyzes a previously extracted supportconfig report. It will find the installed RPMs in the report, and run searches on ALL packages in order to find which ones are up-to-date, have older versions, or are not found in the official repositories. Packages that are from unsupported vendors also get their own report. Packages that are orphans (as in, packages that belong to another version of the OS and were left installed) and PTF (Program Temporary Fix) packages built by SUSE also have a separate report.
 
-It generates 6 CSV reports: vercheck-uptodate-[directory name].csv, vercheck-different-[directory name].csv, vercheck-notfound-[directory name].csv, vercheck-unsupported-[directory name].csv, vercheck-suseorphans-[directory name].csv, and vercheck-suseptf-[directory name].csv respectively.
+It generates these six CSV reports:
+* vercheck-uptodate-[directory name].csv,
+* vercheck-different-[directory name].csv,
+* vercheck-notfound-[directory name].csv,
+* vercheck-unsupported-[directory name].csv,
+* vercheck-suseorphans-[directory name].csv, and
+* vercheck-suseptf-[directory name].csv
+
+respectively.
 
 An output directory can be specified by adding the "-o" (or --outputdir) parameter before the supportconfig directory:
 ```
- ./vercheck.py -o /tmp/reports -d ~/Documents/nts_dxl1lnxsl002_200616_1148 
+ ./vercheck.py -o /tmp/reports -d ~/Documents/nts_dxl1lnxsl002_200616_1148
 ```
 
-* Final considerations
+## Requirements
+
+Dependencies: This utility depends on urllib3 and pyaml. It also uses zypper as a last-resort mechanism to verify versions. Therefore it will **not** run on e.g. Debian based systems.
+
+For Tumbleweed 03/25 this is the working pyaml RPM:
+
+    zypper in python313-yamlcore
+
+
+## Final considerations
 
 This utility only uses public resources maintained by SUSE LLC, no logins are necessary.
-I make no guarantees on availability or speed.
-I try to make sure that the information mined by vercheck is as accurate as possible, but errors can occur. 
 
-If you find a bug or inconsistency, please open an issue!
+I make no guarantees on availability or speed. I try to make sure that the information mined by vercheck is as accurate as possible, but errors can occur.
+
+If you find a bug or inconsistency, please open an issue! https://github.com/doccaz/scc-tools/issues
+
+// **end** //
