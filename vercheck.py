@@ -27,8 +27,8 @@ except ImportError as e:
 # main class that deals with command lines, reports and everything else
 class SCCVersion():
 
-    version = '2.4'
-    build = '20250308'
+    version = '2.5'
+    build = '20250506'
 
     # static product list (taken from RMT and other sources)
     # rmt-cli products list --name "SUSE Linux Enterprise Server" --all
@@ -110,7 +110,6 @@ class SCCVersion():
         # ignore DeprecationWarnings for now to avoid polluting the output
         warnings.filterwarnings("ignore", category=DeprecationWarning)
         self.cm = CacheManager()
-        self.product_list = SCCVersion.fetch_product_list()
 
     def set_verbose(self, verbose):
         self.verbose = verbose
@@ -203,8 +202,12 @@ class SCCVersion():
 
             if valid_response:
                 print('* ' + str(len(return_data['data'])) + ' products found.')
-                return return_data['data']
-
+                # reprocess the data to fit our logic
+                plist={}
+                for p in return_data['data']:
+                    #'name': 'SUSE Manager Server', 'identifier': 'SUSE-Manager-Server/4.0/x86_64', 'type': 'base', 'free': False, 'architecture': 'x86_64', 'version': '4.0'}
+                    plist[p['id']] = {'id':p['id'], 'name':p['name'],'identifier':p['identifier'], 'type':p['type'], 'free':p['free'], 'architecture':p['architecture'], 'version':p['version']}
+                return plist
         return {}
 
 
@@ -230,20 +233,16 @@ class SCCVersion():
                 text = f.read()
                 f.close()
 
-            with open(directory_name + '/rpm.txt', 'r') as f:
-                text_rpms = f.read()
-                f.close()
-
             matches_os = re.search(regex_os, text)
             if matches_os.groups() is not None:
-                print('found CPE: ' + str(matches_os.groups()))
-                print('found architecture: ' + architecture)
-                probable_id = matches_os.group(1).upper() + '/' +  matches_os.group(2).replace(':sp','.') + '/' + architecture.upper()
+                # print('found CPE: ' + str(matches_os.groups()))
+                # print('found architecture: ' + architecture)
+                probable_id = matches_os.group(1).upper() + '/' +  matches_os.group(2).replace(':sp','.').replace(':', '.') + '/' + architecture.upper()
                 print('probable identifier: ' + probable_id)
-                for p in self.product_list:
-                    if p['identifier'].upper() == probable_id:
-                        print('found record: ' +  str(p))
-                        return p
+                for p in self.product_list.items():
+                    if p[1]['identifier'].upper() == probable_id:
+                        print('found record: ' +  str(p[1]))
+                        return p[1]
 
         except Exception as e:
             print('error: ' + str(e))
@@ -363,7 +362,7 @@ class SCCVersion():
 
         for k, v in self.product_list.items():
             print('searching for package \"glibc\" in product id \"' +
-                  str(k) + '\" (' + v['name'] + ')')
+                  str(k) + '\" (' + v['name'] + ' ' +  v['version'] + ')')
             self.threads.insert(instance_nr, PackageSearchEngine(
                 instance_nr, k, package_name, v['name'], '0', self.force_refresh))
             self.threads[instance_nr].start()
@@ -405,7 +404,7 @@ class SCCVersion():
             plist = self.product_list
 
         print('searching for package \"' + package_name + '\" in product id \"' +
-              str(product_id) + '\" (' + plist[product_id]['name'] + ')')
+              str(product_id) + '\" (' + plist[product_id]['name'] + ' ' +  plist[product_id]['version'] + ')')
         self.threads.insert(0, PackageSearchEngine(
             0, product_id, package_name, plist[product_id]['name'], '0', self.force_refresh))
         self.threads[0].start()
@@ -496,6 +495,7 @@ class SCCVersion():
         match_suma = self.find_suma(supportconfigdir)
         selected_product_id = -1
 
+
         if match_os is not None and match_arch != "unknown":
             print('product name = ' + match_os['name'] + ' (id ' + str(
                 match_os['id']) + ', ' + match_arch + ')')
@@ -511,7 +511,7 @@ class SCCVersion():
                 base_regex = r"^SUSE Manager.*"
 
         else:
-            print('error while determining CPE. This is an unknown combination!')
+            print('error while determining CPE. This is an unknown/unsupported combination!')
             exit(1)
             return ([], [], [], [])
 
@@ -866,8 +866,6 @@ class PackageSearchEngine(Thread):
                   str(self.product_id) + ' (cached)')
             return
         else:
-            print('searching for ' + self.package_name +
-                  ' for product ID ' + str(self.product_id) + ' in SCC')
             while not valid_response and tries < self.max_tries:
                 try:
                     r = self.http.request('GET', 'https://scc.suse.com/api/package_search/packages?product_id=' + str(self.product_id) +
@@ -974,6 +972,7 @@ def main():
         elif o in ("-o", "--outputdir"):
             sv.outputdir = a
         elif o in ("-l", "--list-products"):
+            sv.product_list = SCCVersion.fetch_product_list()
             sv.list_products()
             exit(0)
         elif o in ("-1", "--show-unknown"):
@@ -993,9 +992,11 @@ def main():
         elif o in ("-f", "--force-refresh"):
             sv.set_force_refresh(True)
         elif o in ("-t", "--test"):
+            sv.product_list = SCCVersion.fetch_product_list()
             sv.test()
             exit(0)
         elif o in ("-d", "--supportconfig"):
+            sv.product_list = SCCVersion.fetch_product_list()
             supportconfigdir = a
             if os.path.isdir(a) is False:
                 print(f"Directory {a} does not exist.\nIf you're using multiple options in one parameter, make sure -d is the last one (e.g. -vd <directory),\nor use it separately (-v -d <directory>)")
@@ -1021,27 +1022,27 @@ def main():
             exit(0)
         else:
             assert False, "invalid option"
-
-    # fetch the product list
-    sv.product_list = SCCVersion.fetch_product_list()
-
+                    
     if product_id == -1 or package_name == '':
         print('Please specify a product ID and package name.')
         sv.usage()
         exit(2)
-
+    sv.product_list = SCCVersion.fetch_product_list()
     if product_id in sv.suma_product_list:
         plist = sv.suma_product_list
-    else:
+    elif product_id in sv.product_list:
         plist = sv.product_list
-
-    if product_id not in plist:
+    else:
+        plist=None
+    
+    if plist is None:
         print('Product ID ' + str(product_id) + ' is unknown.')
         exit(2)
     else:
         if sv.verbose:
+            pname = plist[product_id]['name'] + ' ' + plist[product_id]['version'] + ' ' + plist[product_id]['architecture']
             print('Using product ID ' + str(product_id) +
-                  ' (' + plist[product_id]['name'] + ')')
+                  ' (' + pname + ')')
 
     sv.search_package(product_id, package_name)
 
