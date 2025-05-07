@@ -28,7 +28,7 @@ except ImportError as e:
 class SCCVersion():
 
     version = '2.5'
-    build = '20250506'
+    build = '20250507'
 
     # static product list (taken from RMT and other sources)
     # rmt-cli products list --name "SUSE Linux Enterprise Server" --all
