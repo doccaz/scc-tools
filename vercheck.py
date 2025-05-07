@@ -318,8 +318,8 @@ class SCCVersion():
         print('Known products list')
         print('ID' + '\t' + 'Name' +  '\t\t\t\t' + 'Architecture')
         print('----------------------------------------------------------------')
-        for p in self.product_list:
-            print(str(p['id']) + '\t' + str(p['name'])+ ' ' + str(p['version']) + ' ' + str(p['architecture']))
+        for p in self.product_list.items():
+            print(str(p[1]['id']) + '\t' + str(p[1]['name'])+ ' ' + str(p[1]['version']) + ' ' + str(p[1]['architecture']))
 
         print('total: ' + str(len(self.product_list)) + ' products.')
         return
