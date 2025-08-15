@@ -27,8 +27,8 @@ except ImportError as e:
 # main class that deals with command lines, reports and everything else
 class SCCVersion():
 
-    version = '2.5'
-    build = '20250507'
+    version = '2.6'
+    build = '20250813'
 
     # static product list (taken from RMT and other sources)
     # rmt-cli products list --name "SUSE Linux Enterprise Server" --all
@@ -93,6 +93,9 @@ class SCCVersion():
 
     # short responses (just package versions)
     short_response = False
+
+    # partial matches allowed?
+    partial_search = False
 
     # force data refresh from SCC (ignore the cache)
     force_refresh = False
@@ -338,7 +341,8 @@ class SCCVersion():
         print('\n')
         print('-l|--list-products\t\tLists all supported products. Use this to get a valid product ID for further queries.')
         print('-p|--product <product id>\tSpecifies a valid product ID for queries. Mandatory for searches.')
-        print('-n|--name <package name>\tSpecifies a package name to search. Exact matches only for now. Mandatory for searches.')
+        print('-n|--name <package name>\tSpecifies a package name to search. Exact matches only. Mandatory for searches.')
+        print('-N|--partialname <package name>\tSpecifies a partial package name to search. Mandatory for searches.')
         print('-s|--short\t\t\tOnly outputs the latest version, useful for scripts')
         print('-v|--verbose\t\t\tOutputs extra information about the search and results')
         print('-1|--show-unknown\t\tshows unknown packages as they are found.')
@@ -364,7 +368,7 @@ class SCCVersion():
             print('searching for package \"glibc\" in product id \"' +
                   str(k) + '\" (' + v['name'] + ' ' +  v['version'] + ')')
             self.threads.insert(instance_nr, PackageSearchEngine(
-                instance_nr, k, package_name, v['name'], '0', self.force_refresh))
+                instance_nr, k, package_name, v['name'], '0', self.force_refresh, self.partial_search))
             self.threads[instance_nr].start()
             instance_nr = instance_nr + 1
 
@@ -406,7 +410,7 @@ class SCCVersion():
         print('searching for package \"' + package_name + '\" in product id \"' +
               str(product_id) + '\" (' + plist[product_id]['name'] + ' ' +  plist[product_id]['version'] + ')')
         self.threads.insert(0, PackageSearchEngine(
-            0, product_id, package_name, plist[product_id]['name'], '0', self.force_refresh))
+            0, product_id, package_name, plist[product_id]['name'], '0', self.force_refresh, self.partial_search))
         self.threads[0].start()
 
         # fetch results for the only thread
@@ -424,12 +428,18 @@ class SCCVersion():
                     print(refined_data['results'][0]['version'] +
                           '-' + refined_data['results'][0]['release'])
             else:
-                if len(sle_results) > 0:
-                    print('latest version for ' + SCCVersion.color(refined_data['query'], 'yellow') + ' on product ID ' + str(refined_data['product_id']) + '(' + SCCVersion.color(plist[product_id]['name'], 'yellow') + ') is ' + SCCVersion.color(
-                        sle_results[0]['version'] + '-' + sle_results[0]['release'], 'green') + ', found on ' + SCCVersion.color(sle_results[0]['products'][0]['name'] + ' (' + sle_results[0]['products'][0]['identifier'] + ')', 'green'))
-                else:
-                    print('latest version for ' + SCCVersion.color(refined_data['query'], 'yellow') + ' on product ID ' + str(refined_data['product_id']) + '(' + SCCVersion.color(plist[product_id]['name'], 'yellow') + ') is ' + SCCVersion.color(
-                        refined_data['results'][0]['version'] + '-' + refined_data['results'][0]['release'], 'green') + ', found on ' + SCCVersion.color(refined_data['results'][0]['products'][0]['name'] + ' (' + refined_data['results'][0]['products'][0]['identifier'] + ')', 'green'))
+                if self.partial_search is False:
+                    if len(sle_results) > 0:
+                        print('latest version for ' + SCCVersion.color(refined_data['query'], 'yellow') + ' on product ID ' + str(refined_data['product_id']) + '(' + SCCVersion.color(plist[product_id]['name'], 'yellow') + ') is ' + SCCVersion.color(
+                            sle_results[0]['version'] + '-' + sle_results[0]['release'], 'green') + ', found on ' + SCCVersion.color(sle_results[0]['products'][0]['name'] + ' (' + sle_results[0]['products'][0]['identifier'] + ')', 'green'))
+                    else:
+                        print('latest version for ' + SCCVersion.color(refined_data['query'], 'yellow') + ' on product ID ' + str(refined_data['product_id']) + '(' + SCCVersion.color(plist[product_id]['name'], 'yellow') + ') is ' + SCCVersion.color(
+                            refined_data['results'][0]['version'] + '-' + refined_data['results'][0]['release'], 'green') + ', found on ' + SCCVersion.color(refined_data['results'][0]['products'][0]['name'] + ' (' + refined_data['results'][0]['products'][0]['identifier'] + ')', 'green'))
+            if self.partial_search:
+                for item in refined_data['results']:
+                    print(item['name'] + ' version ' + item['version'] + '-' + item['release'] +
+                        ' is available on repository [' + item['repository'] + ']')
+
             if self.verbose:
                 for item in refined_data['results']:
                     print('version ' + item['version'] + '-' + item['release'] +
@@ -480,7 +490,7 @@ class SCCVersion():
 
         return result
 
-    def check_supportconfig(self, supportconfigdir):
+    def check_supportconfig(self, supportconfigdir, product_id):
         self.sc_name = supportconfigdir.rstrip(os.sep).split(os.sep)[-1]
         if self.sc_name == '.':
             self.sc_name = os.getcwd().split(os.sep)[-1]
@@ -493,8 +503,13 @@ class SCCVersion():
             match_arch = self.find_arch(supportconfigdir)
         match_os = self.find_cpe(supportconfigdir, match_arch)
         match_suma = self.find_suma(supportconfigdir)
-        selected_product_id = -1
-
+        if int(product_id) > -1:
+            # if the user supplied a product id, use it
+            selected_product_id = product_id
+            match_os = self.product_list[selected_product_id]
+            print('using supplied product id: ' + str(product_id) + '(' + self.product_list[selected_product_id]['identifier'] + ')')
+        else:
+            selected_product_id = -1
 
         if match_os is not None and match_arch != "unknown":
             print('product name = ' + match_os['name'] + ' (id ' + str(
@@ -505,7 +520,7 @@ class SCCVersion():
             base_regex = r"(^SUSE Linux Enterprise.*|^Basesystem.*)"
             if match_suma != -1:
                 print('found ' + self.suma_product_list[match_suma]
-                      ['name'] + ', will use alternate id ' + str(match_suma))
+                    ['name'] + ', will use alternate id ' + str(match_suma))
                 selected_product_id = match_suma
                 # primary repositories for trusted updates should have this regex
                 base_regex = r"^SUSE Manager.*"
@@ -525,7 +540,7 @@ class SCCVersion():
         for chunk in self.list_chunk(rpmlist, self.max_threads):
             for p in chunk:
                 self.threads.insert(count, PackageSearchEngine(
-                    count, selected_product_id, p[0], p[1], p[2], self.force_refresh))
+                    count, selected_product_id, p[0], p[1], p[2], self.force_refresh, self.partial_search))
                 self.threads[count].start()
                 count += 1
             progress = '[' + str(count) + '/' + str(total) + ']'
@@ -554,18 +569,16 @@ class SCCVersion():
                 refined_data = t.get_results()
                 # print('refined data = ' + str(refined_data))
                 try:
-                    target = match_os
-                    ver_regex = r"cpe:/o:suse:(sle-micro|sles|sled|sles_sap):(\d+)"
-                    if ('SL-Micro' in str(target['identifier']) or 'SLE-Micro' in str(target['identifier'])):
+                    if ('SL-Micro' in match_os['identifier']) or 'SLE-Micro' in match_os['identifier']:
                         target_version = 'SUSE Linux Enterprise 15'
                     else:
                         target_version = 'SUSE Linux Enterprise ' + \
-                            target['version'].split('.')[0]
+                            match_os['version'].split('.')[0]
 
                     # print("package does not exist, target_version is " + target_version)
                     # print("supplied distro for package " + str(refined_data['query']) + ' is ' + str(refined_data['supplied_distro']))
                     # print("target identifier is " + target_version)
-                    if (('SLES' in str(target['identifier'])) and (str(refined_data['supplied_distro']) not in target_version)):
+                    if (('SLES' in match_os['identifier']) and (str(refined_data['supplied_distro']) not in target_version)):
                         self.unsupported.append(
                             [refined_data['query'], refined_data['supplied_distro'], refined_data['supplied_version']])
 
@@ -790,7 +803,7 @@ class PackageSearchEngine(Thread):
 
     results = {}
 
-    def __init__(self, instance_nr, product_id, package_name, supplied_distro, supplied_version, force_refresh):
+    def __init__(self, instance_nr, product_id, package_name, supplied_distro, supplied_version, force_refresh, partial_search):
         super(PackageSearchEngine, self).__init__(
             name='search-' + package_name)
         urllib3.disable_warnings()
@@ -800,6 +813,7 @@ class PackageSearchEngine(Thread):
         self.supplied_distro = supplied_distro
         self.supplied_version = supplied_version
         self.force_refresh = force_refresh
+        self.partial_search = partial_search
         self.cm = CacheManager()
         self.done = False
         self.processed = False
@@ -902,7 +916,7 @@ class PackageSearchEngine(Thread):
             if return_data:
                 for item in return_data['data']:
                     # discard items that do not match exactly our query
-                    if item['name'] != self.package_name:
+                    if not self.partial_search and item['name'] != self.package_name:
                         # print('discarding item: ' + item)
                         continue
                     else:
@@ -941,7 +955,7 @@ def main():
     signal.signal(signal.SIGINT, sv.cleanup)
 
     try:
-        opts, args = getopt.getopt(sys.argv[1:],  "Vhp:n:lsvt123456a:d:o:f", ["version", "help", "product=", "name=", "list-products", "short", "verbose", "test", "show-unknown",
+        opts, args = getopt.getopt(sys.argv[1:],  "Vhp:n:N:lsvt123456a:d:o:f", ["version", "help", "product=", "name=", "partialname=", "list-products", "short", "verbose", "test", "show-unknown",
                                    "show-differences", "show-uptodate", "show-unsupported", "show-suseorphans", "show-suseptf", "arch=", "supportconfig=", "outputdir=", "force-refresh"])
     except getopt.GetoptError as err:
         print(err)
@@ -951,7 +965,7 @@ def main():
     product_id = -1
     package_name = ''
     short_response = False
-    global show_unknown, show_diff, show_uptodate, show_unsupported, show_suseorphans, show_suseptf
+    global show_unknown, show_diff, show_uptodate, show_unsupported, show_suseorphans, show_suseptf, partial_search
     global uptodate, different, notfound, unsupported, suseorphans, suseptf
 
     for o, a in opts:
@@ -969,6 +983,9 @@ def main():
             product_id = int(a)
         elif o in ("-n", "--name"):
             package_name = a
+        elif o in ("-N", "--partialname"):
+            package_name = a
+            sv.partial_search = True
         elif o in ("-o", "--outputdir"):
             sv.outputdir = a
         elif o in ("-l", "--list-products"):
@@ -1009,14 +1026,14 @@ def main():
                     print(
                         f"--> This image is {SCCVersion.color('UNSUPPORTED', 'red')} (not found in PINT data), continuing normal package analysis")
                     uptodate, unsupported, notfound, different, suseorphans, suseptf = sv.check_supportconfig(
-                        supportconfigdir)
+                        supportconfigdir, product_id)
                     sv.write_reports()
                 else:
                     pc.get_report()
                 exit(0)
             else:
                 uptodate, unsupported, notfound, different, suseorphans, suseptf = sv.check_supportconfig(
-                    supportconfigdir)
+                    supportconfigdir, product_id)
                 sv.write_reports()
 
             exit(0)
