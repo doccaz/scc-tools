@@ -34,7 +34,7 @@ class SCCVersion():
     # rmt-cli products list --name "SUSE Linux Enterprise Server" --all
     # rmt-cli products list --name "SUSE Linux Enterprise Desktop" --all
     # rmt-cli products list --name "openSUSE" --all
-    # 
+    #
     # (replaced by this alternative, no authentication needed):
     # https://scc.suse.com/api/package_search/products
     #
@@ -48,7 +48,7 @@ class SCCVersion():
     # to get the list of product IDs:
     # rmt-cli products list --name "SUSE Manager Server" --all
 
-    # SUSE Manager from 4.0 to 4.3 is a special case, as it had its own product entry. 
+    # SUSE Manager from 4.0 to 4.3 is a special case, as it had its own product entry.
     # from 5.x onwards it's just a regular extension for SLE Micro.
     suma_product_list = {
         1899: {'name': 'SUSE Manager Server 4.0', 'identifier': '4.0'},
@@ -162,7 +162,7 @@ class SCCVersion():
 
         valid_response = False
         connection_failed = False
-        
+
         # server replies which are temporary errors (and can be retried)
         retry_states = [429, 502, 504]
 
@@ -1024,7 +1024,7 @@ def main():
                     f"--> Image ID is [{SCCVersion.color(pc.get_results()['name'], 'yellow')}]")
                 if pc.get_results()['unsupported']:
                     print(
-                        f"--> This image is {SCCVersion.color('UNSUPPORTED', 'red')} (not found in PINT data), continuing normal package analysis")
+                    f"--> This image is {SCCVersion.color('UNSUPPORTED', 'red')} ({pc.get_results()['version']} not found in PINT data), continuing normal package analysis")
                     uptodate, unsupported, notfound, different, suseorphans, suseptf = sv.check_supportconfig(
                         supportconfigdir, product_id)
                     sv.write_reports()
@@ -1039,7 +1039,7 @@ def main():
             exit(0)
         else:
             assert False, "invalid option"
-                    
+
     if product_id == -1 or package_name == '':
         print('Please specify a product ID and package name.')
         sv.usage()
@@ -1051,7 +1051,7 @@ def main():
         plist = sv.product_list
     else:
         plist=None
-    
+
     if plist is None:
         print('Product ID ' + str(product_id) + ' is unknown.')
         exit(2)
@@ -1306,7 +1306,7 @@ class PublicImageCacheManager():
 
         valid_response = False
         connection_failed = False
-        
+
         # server replies which are temporary errors (and can be retried)
         retry_states = [429, 502, 504]
 
@@ -1545,7 +1545,7 @@ class PublicCloudCheck():
         elif image_type == 'google':
             # GCP image test
             regex_image = r"^projects/(.*)/global/images/(.*)"
-            md_str = ''
+            md_str = None
             with open(meta_file, 'r') as f:
                 contents = f.readlines()
 
@@ -1554,25 +1554,33 @@ class PublicCloudCheck():
                 if md_str:
                     break
 
-            query_project = re.match(
-                regex_image, md_str.group(1).strip()).group(1)
-            query_image = re.match(
-                regex_image, md_str.group(1).strip()).group(2)
-            name = query_project
-            version = query_image
+            if md_str:
+                image_line = md_str.group(1).strip()
+                match = re.match(regex_image, image_line)
+                if match:
+                    query_project = match.group(1)
+                    query_image = match.group(2)
+                    name = query_project
+                    version = query_image
 
-            for image in self.gcp_image_data['active']:
-                if image['project'] == query_project and image['name'] == query_image:
-                    match_active_images.append(image)
+                    for image in self.gcp_image_data['active']:
+                        if image['project'] == query_project and image['name'] == query_image:
+                            match_active_images.append(image)
 
-            for image in self.gcp_image_data['inactive']:
-                if image['project'] == query_project and image['name'] == query_image:
-                    match_inactive_images.append(image)
+                    for image in self.gcp_image_data['inactive']:
+                        if image['project'] == query_project and image['name'] == query_image:
+                            match_inactive_images.append(image)
 
-            for image in self.gcp_image_data['deprecated']:
-                if image['project'] == query_project and image['name'] == query_image:
-                    match_deprecated_images.append(image)
-
+                    for image in self.gcp_image_data['deprecated']:
+                        if image['project'] == query_project and image['name'] == query_image:
+                            match_deprecated_images.append(image)
+                else:
+                    name = "Unknown"
+                    version = "Unknown/" + image_line
+            else:
+                print("Warning: No GCP image line found in metadata.txt")
+                name = "Unknown"
+                version = "Unknown"
         elif image_type == 'amazon':
             # Amazon image test
             regex_image = r"^projects/(.*)/global/images/(.*)"
