@@ -79,6 +79,7 @@ ID      Name
 ...
 
 As of Oct 2023, 103 products are supported.
+As of Sept 2025, 175 products are supported
 ```
 
 Note: SLE 11 and derivatives are not supported for queries by the API, even though there are valid product numbers for it.
