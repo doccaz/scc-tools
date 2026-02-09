@@ -964,6 +964,7 @@ def main():
 
     product_id = -1
     package_name = ''
+    supportconfig_used = False
     short_response = False
     global show_unknown, show_diff, show_uptodate, show_unsupported, show_suseorphans, show_suseptf, partial_search
     global uptodate, different, notfound, unsupported, suseorphans, suseptf
@@ -1024,19 +1025,15 @@ def main():
                     f"--> Image ID is [{SCCVersion.color(pc.get_results()['name'], 'yellow')}]")
                 if pc.get_results()['unsupported']:
                     print(
-                    f"--> This image is {SCCVersion.color('UNSUPPORTED', 'red')} ({pc.get_results()['version']} not found in PINT data), continuing normal package analysis")
-                    uptodate, unsupported, notfound, different, suseorphans, suseptf = sv.check_supportconfig(
-                        supportconfigdir, product_id)
-                    sv.write_reports()
+                        f"--> This image is {SCCVersion.color('UNSUPPORTED', 'red')} ({pc.get_results()['version']} not found in PINT data), continuing normal package analysis")
                 else:
                     pc.get_report()
-                exit(0)
-            else:
-                uptodate, unsupported, notfound, different, suseorphans, suseptf = sv.check_supportconfig(
-                    supportconfigdir, product_id)
-                sv.write_reports()
 
-            exit(0)
+            supportconfig_used = True
+            # Always continue with RPM analysis after printing public-cloud info
+            uptodate, unsupported, notfound, different, suseorphans, suseptf = sv.check_supportconfig(
+                supportconfigdir, product_id)
+            sv.write_reports()
         else:
             assert False, "invalid option"
 
@@ -1604,8 +1601,24 @@ class PublicCloudCheck():
                 if image['id'] == query_image:
                     match_deprecated_images.append(image)
 
+        # deduplicate results (preserve order)
+        def _dedupe_list(lst):
+            seen = set()
+            out = []
+            for item in lst:
+                key = item.get('id') if isinstance(item, dict) and 'id' in item else item.get('name') if isinstance(item, dict) else item
+                if key not in seen:
+                    seen.add(key)
+                    out.append(item)
+            return out
+
+        match_active_images = _dedupe_list(match_active_images)
+        match_inactive_images = _dedupe_list(match_inactive_images)
+        match_deprecated_images = _dedupe_list(match_deprecated_images)
+        match_deleted_images = _dedupe_list(match_deleted_images)
+
         # if it's not an offer from the marketplace, it's unsupported
-        if len(match_active_images) == 0 and len(match_inactive_images) == 0 and len(match_active_images) == 0:
+        if len(match_active_images) == 0 and len(match_inactive_images) == 0 and len(match_deprecated_images) == 0:
             is_unsupported = True
 
         # make the final object
