@@ -27,8 +27,8 @@ except ImportError as e:
 # main class that deals with command lines, reports and everything else
 class SCCVersion():
 
-    version = '2.6'
-    build = '20250813'
+    version = '2.7'
+    build = '20260214'
 
     # static product list (taken from RMT and other sources)
     # rmt-cli products list --name "SUSE Linux Enterprise Server" --all
@@ -99,6 +99,9 @@ class SCCVersion():
 
     # force data refresh from SCC (ignore the cache)
     force_refresh = False
+
+    # force supportconfig check (even if cloud image is found)
+    force_supportconfig_check = False
 
     # default output directory for the reports
     outputdir = os.getcwd()
@@ -230,23 +233,27 @@ class SCCVersion():
 
     def find_cpe(self, directory_name, architecture):
         regex_os = r".*\"cpe\:/o\:suse\:(sles|sled|sles_sap|sle-micro)\:(.*)\:?(.*)\""
-
+        regex_sap = r".*VARIANT_ID=\"(sles-sap)\""
         try:
             with open(directory_name + '/basic-environment.txt', 'r') as f:
                 text = f.read()
                 f.close()
 
             matches_os = re.search(regex_os, text)
+            matches_sap = re.search(regex_sap, text)
             if matches_os.groups() is not None:
                 # print('found CPE: ' + str(matches_os.groups()))
                 # print('found architecture: ' + architecture)
                 probable_id = matches_os.group(1).upper() + '/' +  matches_os.group(2).replace(':sp','.').replace(':', '.') + '/' + architecture.upper()
                 print('probable identifier: ' + probable_id)
+                if matches_sap is not None:
+                    print('found SAP VARIANT_ID: ' + matches_sap.group(1))
+                    probable_id =  (matches_os.group(1) + '_SAP').upper() + '/' +  matches_os.group(2).replace(':sp','.').replace(':', '.') + '/' + architecture.upper()
                 for p in self.product_list.items():
                     if p[1]['identifier'].upper() == probable_id:
                         print('found record: ' +  str(p[1]))
                         return p[1]
-
+                    
         except Exception as e:
             print('error: ' + str(e))
         return None
@@ -955,8 +962,8 @@ def main():
     signal.signal(signal.SIGINT, sv.cleanup)
 
     try:
-        opts, args = getopt.getopt(sys.argv[1:],  "Vhp:n:N:lsvt123456a:d:o:f", ["version", "help", "product=", "name=", "partialname=", "list-products", "short", "verbose", "test", "show-unknown",
-                                   "show-differences", "show-uptodate", "show-unsupported", "show-suseorphans", "show-suseptf", "arch=", "supportconfig=", "outputdir=", "force-refresh"])
+        opts, args = getopt.getopt(sys.argv[1:],  "Vhp:n:N:lsvt123456a:d:o:fc", ["version", "help", "product=", "name=", "partialname=", "list-products", "short", "verbose", "test", "show-unknown",
+                                   "show-differences", "show-uptodate", "show-unsupported", "show-suseorphans", "show-suseptf", "arch=", "supportconfig=", "outputdir=", "force-refresh", "check-supportconfig"])
     except getopt.GetoptError as err:
         print(err)
         sv.usage()
@@ -965,6 +972,8 @@ def main():
     product_id = -1
     package_name = ''
     short_response = False
+    force_supportconfig_check = False
+    force_refresh = False
     global show_unknown, show_diff, show_uptodate, show_unsupported, show_suseorphans, show_suseptf, partial_search
     global uptodate, different, notfound, unsupported, suseorphans, suseptf
 
@@ -979,6 +988,8 @@ def main():
             sv.arch = a
         elif o in ("-s", "--short"):
             sv.short_response = True
+        elif o in ("-c", "--check-supportconfig"):
+            sv.force_supportconfig_check = True
         elif o in ("-p", "--product"):
             product_id = int(a)
         elif o in ("-n", "--name"):
@@ -1030,7 +1041,15 @@ def main():
                     sv.write_reports()
                 else:
                     pc.get_report()
-                exit(0)
+                
+                if sv.force_supportconfig_check:
+                    print("Supportconfig check forced.")
+                    uptodate, unsupported, notfound, different, suseorphans, suseptf = sv.check_supportconfig(
+                    supportconfigdir, product_id)
+                    sv.write_reports()
+                else:
+                    print("Supportconfig check not forced.")
+                    exit(0)
             else:
                 uptodate, unsupported, notfound, different, suseorphans, suseptf = sv.check_supportconfig(
                     supportconfigdir, product_id)
@@ -1604,6 +1623,12 @@ class PublicCloudCheck():
                 if image['id'] == query_image:
                     match_deprecated_images.append(image)
 
+        # deduplicate results (preserve order)
+        match_active_images = self._dedupe_list(match_active_images)
+        match_inactive_images = self._dedupe_list(match_inactive_images)
+        match_deprecated_images = self._dedupe_list(match_deprecated_images)
+        match_deleted_images = self._dedupe_list(match_deleted_images)
+
         # if it's not an offer from the marketplace, it's unsupported
         if len(match_active_images) == 0 and len(match_inactive_images) == 0 and len(match_active_images) == 0:
             is_unsupported = True
@@ -1622,6 +1647,16 @@ class PublicCloudCheck():
 
         return match_data
 
+    # deduplicate results (preserve order)
+    def _dedupe_list(self, lst):
+            seen = set()
+            out = []
+            for item in lst:
+                key = item.get('id') if isinstance(item, dict) and 'id' in item else item.get('name') if isinstance(item, dict) else item
+                if key not in seen:
+                    seen.add(key)
+                    out.append(item)
+            return out
 
 if __name__ == "__main__":
     main()
