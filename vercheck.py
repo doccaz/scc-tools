@@ -27,8 +27,8 @@ except ImportError as e:
 # main class that deals with command lines, reports and everything else
 class SCCVersion():
 
-    version = '2.7'
-    build = '20260214'
+    version = '2.7.2'       ## _VERSIONNUMBER_ - must be updated manually for now, but should ideally be automated in the future
+    build = '20260215'
 
     # static product list (taken from RMT and other sources)
     # rmt-cli products list --name "SUSE Linux Enterprise Server" --all
@@ -253,7 +253,7 @@ class SCCVersion():
                     if p[1]['identifier'].upper() == probable_id:
                         print('found record: ' +  str(p[1]))
                         return p[1]
-                    
+
         except Exception as e:
             print('error: ' + str(e))
         return None
@@ -335,7 +335,7 @@ class SCCVersion():
         return
 
     def usage(self):
-        print('Usage: ' + sys.argv[0] + ' [-l|--list-products] -p|--product product id -n|--name <package name> [-s|--short] [-v|--verbose] [-1|--show-unknown] [-2|--show-differences] [-3|--show-uptodate] [-4|--show-unsupported] [-5|--show-suseorphans] [-6|--show-suseptf] [-o|--outputdir] [-d|--supportconfig] [-a|--arch <architecture>] [-f|--force-refresh] [-V|--version]')
+        print('Usage: ' + sys.argv[0] + ' [-l|--list-products] -p|--product product id -n|--name <package name> \n[-s|--short] [-v|--verbose] [-1|--show-unknown]\n[-2|--show-differences] [-3|--show-uptodate] [-4|--show-unsupported] [-5|--show-suseorphans]\n[-6|--show-suseptf] [-o|--outputdir] [-d|--supportconfig] [-a|--arch <architecture>]\n[-f|--force-refresh] [--check-supportconfig] [-V|--version]')
         return
 
     def show_version(self):
@@ -360,8 +360,9 @@ class SCCVersion():
         print('-6|--show-suseptf\t\tshows SUSE-made PTF (Program Temporary Fix) packages.')
         print('-o|--outputdir\t\t\tspecify an output directory for the reports. Default: current directory.')
         print('-d|--supportconfig\t\tAnalyzes a supportconfig directory and generates CSV reports for all packages described by types 1-6.')
-        print('-a|--arch <architecture>\t\t\tSupply an architecture for the supportconfig analysis.')
+        print('-a|--arch <architecture>\tSupply an architecture for the supportconfig analysis.')
         print('-f|--force-refresh\t\tIgnore cached data and retrieve latest data from SCC and public cloud info')
+        print('-c|--check-supportconfig\tForce supportconfig check even if cloud image information is found (useful for testing and debugging)')
         print('-V|--version\t\t\tShow program version')
         print('\n')
         return
@@ -962,13 +963,16 @@ def main():
     signal.signal(signal.SIGINT, sv.cleanup)
 
     try:
-        opts, args = getopt.getopt(sys.argv[1:],  "Vhp:n:N:lsvt123456a:d:o:fc", ["version", "help", "product=", "name=", "partialname=", "list-products", "short", "verbose", "test", "show-unknown",
-                                   "show-differences", "show-uptodate", "show-unsupported", "show-suseorphans", "show-suseptf", "arch=", "supportconfig=", "outputdir=", "force-refresh", "check-supportconfig"])
+        opts, args = getopt.getopt(sys.argv[1:],  "Vhp:n:N:lsvt123456a:d:o:fc", ["version", "help", "product=", "name=", "partialname=",
+                                   "list-products", "short", "verbose", "test", "show-unknown",
+                                   "show-differences", "show-uptodate", "show-unsupported", "show-suseorphans",
+                                   "show-suseptf", "arch=", "supportconfig=", "outputdir=", "force-refresh", "check-supportconfig"])
     except getopt.GetoptError as err:
         print(err)
         sv.usage()
-        exit(2)
+        exit(42)        # for debugging purposes, to distinguish between different error cases
 
+    ## print("DEBUG: Opts: " + str(opts) + " Args: " + str(args))
     product_id = -1
     package_name = ''
     short_response = False
@@ -988,7 +992,7 @@ def main():
             sv.arch = a
         elif o in ("-s", "--short"):
             sv.short_response = True
-        elif o in ("-c", "--check-supportconfig"):
+        elif o in ("-c", "--check-supportconfig"):      # new 202602
             sv.force_supportconfig_check = True
         elif o in ("-p", "--product"):
             product_id = int(a)
@@ -1023,7 +1027,7 @@ def main():
             sv.product_list = SCCVersion.fetch_product_list()
             sv.test()
             exit(0)
-        elif o in ("-d", "--supportconfig"):
+        elif o in ("-d", "--supportconfig"):                            # last arg
             sv.product_list = SCCVersion.fetch_product_list()
             supportconfigdir = a
             if os.path.isdir(a) is False:
@@ -1041,7 +1045,7 @@ def main():
                     sv.write_reports()
                 else:
                     pc.get_report()
-                
+
                 if sv.force_supportconfig_check:
                     print("Supportconfig check forced.")
                     uptodate, unsupported, notfound, different, suseorphans, suseptf = sv.check_supportconfig(
@@ -1062,7 +1066,7 @@ def main():
     if product_id == -1 or package_name == '':
         print('Please specify a product ID and package name.')
         sv.usage()
-        exit(2)
+        exit(3)
     sv.product_list = SCCVersion.fetch_product_list()
     if product_id in sv.suma_product_list:
         plist = sv.suma_product_list
@@ -1073,7 +1077,7 @@ def main():
 
     if plist is None:
         print('Product ID ' + str(product_id) + ' is unknown.')
-        exit(2)
+        exit(4)
     else:
         if sv.verbose:
             pname = plist[product_id]['name'] + ' ' + plist[product_id]['version'] + ' ' + plist[product_id]['architecture']

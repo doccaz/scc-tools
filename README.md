@@ -17,8 +17,17 @@ Disclaimer: I'm a SUSE employee.
 
 Usage:
 ```
-# ./vercheck.py [-l|--list-products] -p|--product product id -n|--name <package name> [-s|--short] [-v|--verbose] [-1|--show-unknown] [-2|--show-differences] [-3|--show-uptodate] [-4|--show-unsupported] [-5|--show-suseorphans] [-6|--show-suseptf] [-o|--outputdir] [-d|--supportconfig] [-a|--arch] [-f|--force-refresh] [-V|--version]
+# ./vercheck.py [-l|--list-products] -p|--product product id
+    -n|--name <package name>
+    [-s|--short] [-v|--verbose] [-1|--show-unknown]
+    [-2|--show-differences] [-3|--show-uptodate]
+    [-4|--show-unsupported] [-5|--show-suseorphans]
+    [-6|--show-suseptf] [-o|--outputdir]
+    [-d|--supportconfig] [-a|--arch <architecture>]
+    [-f|--force-refresh] [-V|--version]
+    [c-|--check-supportconfig]
 
+# ./vercheck.py -[Vhp:n:N:lsvt123456a:d:o:fc]
 ```
 
 It uses compression, and a single urllib3 pool instance, to minimize the impact on the public server as much as possible. In order to speed things up, I open multiple threads and consume the RPM list slowly.
@@ -42,14 +51,13 @@ searching for zypper for product ID 1939 in SCC
 
 5) there is an additional command-line option:
 ```
--f|--force-refresh              Ignore cached data and retrieve latest data from SCC and public cloud info
+-f|--force-refresh    Ignore cached data and retrieve latest data from SCC and public cloud info
 ```
 This ignores the cache and goes straight to SCC for the latest data (the results are added to the cache at the end for later use though).
 
 6) it's also heavily multi-threaded, and as such it has a way more complex data locking logic.
 
-*IMPORTANT*: As we discovered through testing, running multiple parallel copies of this version may "lose" some of the recently refreshed cache entries. This limitation is by design. What happens is that in every session I read the cached entries to memory, then write it all at the end. Everything is changed in-memory. So, whoever runs last "wins". This is to avoid thousands of small disk writes, and possibly being called a "disk killer" :-)
-In the future I intend to implement a more robust cache backend (sqlite?) and address this. I might also merge it back to a single version of the script.
+>*IMPORTANT*: As we discovered through testing, running multiple parallel copies of this version may "lose" some of the recently refreshed cache entries. This limitation is by design. What happens is that in every session I read the cached entries to memory, then write it all at the end. Everything is changed in-memory. So, whoever runs last "wins". This is to avoid thousands of small disk writes, and possibly being called a "disk killer" :-) In the future I intend to implement a more robust cache backend (sqlite?) and address this. I might also merge it back to a single version of the script.
 
 
 ### Examples
@@ -179,6 +187,11 @@ An output directory can be specified by adding the "-o" (or --outputdir) paramet
 ```
  ./vercheck.py -o /tmp/reports -d ~/Documents/nts_dxl1lnxsl002_200616_1148
 ```
+`--check-config Parameter`
+
+Runs the supportconfig check even when the system is a cloud image that already exists and is active in the database.
+
+The new -c or --check-supportconfig flag explicitly forces a regular supportconfig analysis to run after a successful PINT search
 
 ## Requirements
 
