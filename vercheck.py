@@ -27,8 +27,8 @@ except ImportError as e:
 # main class that deals with command lines, reports and everything else
 class SCCVersion():
 
-    version = '2.7.2'       ## _VERSIONNUMBER_ - must be updated manually for now, but should ideally be automated in the future
-    build = '20260215'
+    version = '2.7.3'       ## _VERSIONNUMBER_ - must be updated manually for now, but should ideally be automated in the future
+    build = '20260218'
 
     # static product list (taken from RMT and other sources)
     # rmt-cli products list --name "SUSE Linux Enterprise Server" --all
@@ -234,13 +234,14 @@ class SCCVersion():
     def find_cpe(self, directory_name, architecture):
         regex_os = r".*\"cpe\:/o\:suse\:(sles|sled|sles_sap|sle-micro)\:(.*)\:?(.*)\""
         regex_sap = r".*VARIANT_ID=\"(sles-sap)\""
+        regex_sap2 = r"(SLES_SAP)-release-(.*\.*)-.*"
         try:
             with open(directory_name + '/basic-environment.txt', 'r') as f:
                 text = f.read()
                 f.close()
-
             matches_os = re.search(regex_os, text)
             matches_sap = re.search(regex_sap, text)
+            matches_sap2 = re.search(regex_sap2, text)
             if matches_os.groups() is not None:
                 # print('found CPE: ' + str(matches_os.groups()))
                 # print('found architecture: ' + architecture)
@@ -248,6 +249,9 @@ class SCCVersion():
                 print('probable identifier: ' + probable_id)
                 if matches_sap is not None:
                     print('found SAP VARIANT_ID: ' + matches_sap.group(1))
+                    probable_id =  (matches_os.group(1) + '_SAP').upper() + '/' +  matches_os.group(2).replace(':sp','.').replace(':', '.') + '/' + architecture.upper()
+                elif matches_sap2 is not None:
+                    print('found SAP via Base Product: ' + matches_sap2.group(1) + ' ' + matches_sap2.group(2))
                     probable_id =  (matches_os.group(1) + '_SAP').upper() + '/' +  matches_os.group(2).replace(':sp','.').replace(':', '.') + '/' + architecture.upper()
                 for p in self.product_list.items():
                     if p[1]['identifier'].upper() == probable_id:
@@ -1146,7 +1150,7 @@ class CacheManager(metaclass=Singleton):
     # loads the JSON cache if available
     def load_cache(self):
         try:
-            with self.acquire_timeout(2) as acquired:
+            with self.acquire_timeout(.5) as acquired:
                 if acquired:
                     if not self.initialized:
                         # if the default directory is writeable, use it
