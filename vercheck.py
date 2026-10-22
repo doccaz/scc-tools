@@ -27,8 +27,8 @@ except ImportError as e:
 # main class that deals with command lines, reports and everything else
 class SCCVersion():
 
-    version = '2.7.3'       ## _VERSIONNUMBER_ - must be updated manually for now, but should ideally be automated in the future
-    build = '20260218'
+    version = '2.7.4'       ## _VERSIONNUMBER_ - must be updated manually for now, but should ideally be automated in the future
+    build = '20261022'
 
     # static product list (taken from RMT and other sources)
     # rmt-cli products list --name "SUSE Linux Enterprise Server" --all
@@ -55,6 +55,14 @@ class SCCVersion():
         2012: {'name': 'SUSE Manager Server 4.1', 'identifier': '4.1'},
         2222: {'name': 'SUSE Manager Server 4.2', 'identifier': '4.2'},
         2378: {'name': 'SUSE Manager Server 4.3', 'identifier': '4.3'},
+    }
+
+    # SUSE Multi-Linux Manager 5.x isn't returned by the SCC product list, as it's an extension of SLE/SL Micro.
+    # Its packages are searched through the base product it runs on (identifier prefix, as listed by SCC).
+    mlm_base_list = {
+        '5.0': {'name': 'SUSE Manager', 'base': 'SLE-Micro/5.5'},
+        '5.1': {'name': 'SUSE Multi-Linux Manager', 'base': 'SL-Micro/6.1'},
+        '5.2': {'name': 'SUSE Multi-Linux Manager', 'base': 'SL-Micro/6.2'},
     }
 
     # result lists
@@ -245,14 +253,27 @@ class SCCVersion():
             if matches_os.groups() is not None:
                 # print('found CPE: ' + str(matches_os.groups()))
                 # print('found architecture: ' + architecture)
-                probable_id = matches_os.group(1).upper() + '/' +  matches_os.group(2).replace(':sp','.').replace(':', '.') + '/' + architecture.upper()
+                os_name = matches_os.group(1)
+                os_version = matches_os.group(2)
+                # SLE 16 based products use a "<major>:<major.minor>" CPE, e.g. cpe:/o:suse:sles:16:16.0
+                matches_v16 = re.match(r"^\d+:(\d+\.\d+)$", os_version)
+                if matches_v16 is not None:
+                    os_version = matches_v16.group(1)
+                # SUSE Linux Micro 6.x (the MLM 5.x host) is listed as SL-Micro, but the CPE may say sles or sle-micro
+                matches_micro = re.search(r"SUSE_SUPPORT_PRODUCT=\"SUSE Linux Micro\"\s+SUSE_SUPPORT_PRODUCT_VERSION=\"(\d+\.\d+)\"", text)
+                if matches_micro is not None:
+                    os_name = 'SL-Micro'
+                    os_version = matches_micro.group(1)
+                elif os_name == 'sle-micro' and os_version.startswith('6'):
+                    os_name = 'SL-Micro'
+                probable_id = os_name.upper() + '/' +  os_version.replace(':sp','.').replace(':', '.') + '/' + architecture.upper()
                 print('probable identifier: ' + probable_id)
                 if matches_sap is not None:
                     print('found SAP VARIANT_ID: ' + matches_sap.group(1))
-                    probable_id =  (matches_os.group(1) + '_SAP').upper() + '/' +  matches_os.group(2).replace(':sp','.').replace(':', '.') + '/' + architecture.upper()
+                    probable_id =  (os_name + '_SAP').upper() + '/' +  os_version.replace(':sp','.').replace(':', '.') + '/' + architecture.upper()
                 elif matches_sap2 is not None:
                     print('found SAP via Base Product: ' + matches_sap2.group(1) + ' ' + matches_sap2.group(2))
-                    probable_id =  (matches_os.group(1) + '_SAP').upper() + '/' +  matches_os.group(2).replace(':sp','.').replace(':', '.') + '/' + architecture.upper()
+                    probable_id =  (os_name + '_SAP').upper() + '/' +  os_version.replace(':sp','.').replace(':', '.') + '/' + architecture.upper()
                 for p in self.product_list.items():
                     if p[1]['identifier'].upper() == probable_id:
                         print('found record: ' +  str(p[1]))
@@ -336,6 +357,16 @@ class SCCVersion():
             print(str(p[1]['id']) + '\t' + str(p[1]['name'])+ ' ' + str(p[1]['version']) + ' ' + str(p[1]['architecture']))
 
         print('total: ' + str(len(self.product_list)) + ' products.')
+
+        print('')
+        print('Multi-Linux Manager 5.x is an extension and has no product ID of its own.')
+        print('To search its packages, use the product ID of the base product it runs on:')
+        print('Version\tName\t\t\t\tBase product ID')
+        print('----------------------------------------------------------------')
+        for version, mlm in self.mlm_base_list.items():
+            bases = [p for p in self.product_list.values() if p['identifier'].upper().startswith(mlm['base'].upper() + '/')]
+            for p in sorted(bases, key=lambda x: x['architecture']):
+                print(version + '\t' + mlm['name'] + ' ' + version + ' (' + p['architecture'] + ')\t-p ' + str(p['id']) + ' (' + p['name'] + ' ' + p['version'] + ')')
         return
 
     def usage(self):
