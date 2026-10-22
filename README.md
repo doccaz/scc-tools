@@ -17,7 +17,7 @@ Disclaimer: I'm a SUSE employee.
 
 Usage:
 ```
-# ./vercheck.py [-l|--list-products] -p|--product product id
+# ./vercheck.py [-l|--list-products] -p|--product product id[,product id...] (can be repeated)
     -n|--name <package name>
     [-s|--short] [-v|--verbose] [-1|--show-unknown]
     [-2|--show-differences] [-3|--show-uptodate]
@@ -116,6 +116,15 @@ searching for glibc for product ID 2465 in SCC
 2.31-150300.63.1
 
 ```
+
+* Checking for the latest version of a package in several products at once (repeat `-p` or use a comma-separated list):
+```
+$ ./vercheck.py -p 2465 -p 2793 -n ca-certificates-mozilla -s
+$ ./vercheck.py -p 2465,2793 -n ca-certificates-mozilla -s
+2465: 2.92-150200.50.2
+2793: 2.92-150200.50.2
+```
+With short output (`-s`) and more than one product, each line is prefixed with the product ID.
 
 * Analyzing a supportconfig
 ```

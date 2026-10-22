@@ -27,7 +27,7 @@ except ImportError as e:
 # main class that deals with command lines, reports and everything else
 class SCCVersion():
 
-    version = '2.7.4'       ## _VERSIONNUMBER_ - must be updated manually for now, but should ideally be automated in the future
+    version = '2.7.5'       ## _VERSIONNUMBER_ - must be updated manually for now, but should ideally be automated in the future
     build = '20261022'
 
     # static product list (taken from RMT and other sources)
@@ -382,7 +382,7 @@ class SCCVersion():
         self.usage()
         print('\n')
         print('-l|--list-products\t\tLists all supported products. Use this to get a valid product ID for further queries.')
-        print('-p|--product <product id>\tSpecifies a valid product ID for queries. Mandatory for searches.')
+        print('-p|--product <product id>\tSpecifies a valid product ID for queries. Mandatory for searches.\n\t\t\t\tCan be repeated or comma-separated (-p 2465 -p 2793 or -p 2465,2793) to search several products.')
         print('-n|--name <package name>\tSpecifies a package name to search. Exact matches only. Mandatory for searches.')
         print('-N|--partialname <package name>\tSpecifies a partial package name to search. Mandatory for searches.')
         print('-s|--short\t\t\tOnly outputs the latest version, useful for scripts')
@@ -441,7 +441,7 @@ class SCCVersion():
             time.sleep(.1)
         return
 
-    def search_package(self, product_id, package_name):
+    def search_package(self, product_id, package_name, show_id=False):
 
         self.threads = []
 
@@ -462,13 +462,16 @@ class SCCVersion():
         sle_results = [p for p in refined_data['results']
                        if 'SUSE Linux Enterprise' in p['repository']]
 
+        # when searching several products, short answers are prefixed with the product ID
+        short_prefix = str(product_id) + ': ' if show_id else ''
+
         try:
             if self.short_response:
                 if len(sle_results) > 0:
-                    print(sle_results[0]['version'] +
+                    print(short_prefix + sle_results[0]['version'] +
                           '-' + sle_results[0]['release'])
                 else:
-                    print(refined_data['results'][0]['version'] +
+                    print(short_prefix + refined_data['results'][0]['version'] +
                           '-' + refined_data['results'][0]['release'])
             else:
                 if self.partial_search is False:
@@ -489,7 +492,7 @@ class SCCVersion():
                           ' is available on repository [' + item['repository'] + ']')
         except IndexError:
             if self.short_response:
-                print('none')
+                print(short_prefix + 'none')
             else:
                 print('could not find any version for package ' + package_name)
         return
@@ -1009,6 +1012,7 @@ def main():
 
     ## print("DEBUG: Opts: " + str(opts) + " Args: " + str(args))
     product_id = -1
+    product_ids = []
     package_name = ''
     short_response = False
     force_supportconfig_check = False
@@ -1030,7 +1034,13 @@ def main():
         elif o in ("-c", "--check-supportconfig"):      # new 202602
             sv.force_supportconfig_check = True
         elif o in ("-p", "--product"):
-            product_id = int(a)
+            try:
+                product_ids.extend(int(x) for x in a.split(',') if x.strip() != '')
+            except ValueError:
+                print('Invalid product ID list: ' + a)
+                exit(3)
+            if product_ids:
+                product_id = product_ids[0]
         elif o in ("-n", "--name"):
             package_name = a
         elif o in ("-N", "--partialname"):
@@ -1065,6 +1075,9 @@ def main():
         elif o in ("-d", "--supportconfig"):                            # last arg
             sv.product_list = SCCVersion.fetch_product_list()
             supportconfigdir = a
+            if len(product_ids) > 1:
+                print('Only one product ID can be used with a supportconfig analysis.')
+                exit(3)
             if os.path.isdir(a) is False:
                 print(f"Directory {a} does not exist.\nIf you're using multiple options in one parameter, make sure -d is the last one (e.g. -vd <directory),\nor use it separately (-v -d <directory>)")
                 exit(1)
@@ -1103,23 +1116,24 @@ def main():
         sv.usage()
         exit(3)
     sv.product_list = SCCVersion.fetch_product_list()
-    if product_id in sv.suma_product_list:
-        plist = sv.suma_product_list
-    elif product_id in sv.product_list:
-        plist = sv.product_list
-    else:
-        plist=None
-
-    if plist is None:
-        print('Product ID ' + str(product_id) + ' is unknown.')
-        exit(4)
-    else:
+    # validate all product IDs before searching, dropping duplicates but keeping the order
+    plists = {}
+    for pid in dict.fromkeys(product_ids):
+        if pid in sv.suma_product_list:
+            plists[pid] = sv.suma_product_list
+        elif pid in sv.product_list:
+            plists[pid] = sv.product_list
+        else:
+            print('Product ID ' + str(pid) + ' is unknown.')
+            exit(4)
         if sv.verbose:
-            pname = plist[product_id]['name'] + ' ' + plist[product_id]['version'] + ' ' + plist[product_id]['architecture']
-            print('Using product ID ' + str(product_id) +
+            plist = plists[pid]
+            pname = plist[pid]['name'] + ' ' + plist[pid]['version'] + ' ' + plist[pid]['architecture']
+            print('Using product ID ' + str(pid) +
                   ' (' + pname + ')')
 
-    sv.search_package(product_id, package_name)
+    for pid in plists:
+        sv.search_package(pid, package_name, show_id=len(plists) > 1)
 
     return
 
